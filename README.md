@@ -1,6 +1,8 @@
 ### Tslazer
 This is a program to download Twitter Spaces from the command line. 
 
+Also it's **Lazer** fast. It uses dynamic threading to ensure you always get the optimal download speed. 
+
 As of now, this tool cannot download ongoing spaces (Well it can, but the final product will be partial). It works best for ended spaces that you have the master URL for. 
 #### Usage
 
