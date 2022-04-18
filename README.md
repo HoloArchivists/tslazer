@@ -59,6 +59,15 @@ As of now, this tool cannot download ongoing spaces. It works best for ended spa
 | m3u8_parser  | Provides an interface for the program to Parse the m3u8 files and Download Twitter Spaces  |
 | test.cpp  | Provides the Program options and CLI interface  |
 
+#### Upcoming features
+These are features that I will do my best to implement, but I can't offer any guarantees. 
+
+- Cross-Platform Support (Hopefully)
+- Discord Integration
+- Scheduled Spaces Support
+- Config Files
+- Monitor Multiple users at a time
+
 ### Special Thanks
 [@notpeko](https://github.com/notpeko "@notpeko") - Writing the code to parse and strip ID3 tags from .aac files.
 
