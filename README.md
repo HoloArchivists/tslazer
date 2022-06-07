@@ -42,8 +42,8 @@ Also it's **Lazer** fast. It uses dynamic threading to ensure you always get the
 #### Upcoming features
 These are features that I will do my best to implement, but I can't offer any guarantees. 
 
-- Cross-Platform Support (Hopefully)
 - Discord Integration
+- Space Monitoring
 - Scheduled Spaces Support
 - Config Files
 - Monitor Multiple users at a time
