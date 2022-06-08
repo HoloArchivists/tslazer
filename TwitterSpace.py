@@ -1,23 +1,30 @@
 # tslazer.py
 # Author: ef1500
 
-import collections
 import os
 import re
+import time
 import shutil
-from urllib.parse import urlparse
-
 import requests
 import subprocess
-import time
+import collections
+import concurrent.futures
+import mutagen.id3 as mid3
+
 from slugify import slugify
+from dataclasses import dataclass
+from urllib.parse import urlparse
 from requests_futures.sessions import FuturesSession
 
 
 class TwitterSpace:
-    Chunk = collections.namedtuple('Chunk', ['url', 'filename'])
     TwitterUser = collections.namedtuple('TwitterUser', ['name', 'screen_name', 'id'])
     SpacePlaylists = collections.namedtuple('SpacePlaylists', ['chunk_server', 'master_url'])
+    
+    @dataclass
+    class Chunk:
+        url: str
+        filename: str
     
     @staticmethod
     def getUser(username):
@@ -115,6 +122,7 @@ class TwitterSpace:
         m3u8Request = requests.get(playlists.master_url)
         m3u8Data = m3u8Request.text
         chunkList = list()
+        del m3u8Request
         
         for chunk in re.findall(r"chunk_\d{19}_\d+_a\.aac", m3u8Data):
             chunkList.append(TwitterSpace.Chunk(f"{playlists.chunk_server}{chunk}", chunk))
@@ -139,28 +147,33 @@ class TwitterSpace:
         chunkpath = os.path.join(path, "chunks")        
         
         # Get the amount of working threads that the machine has so we know how many to use
-        session = FuturesSession(max_workers=os.cpu_count())
+        session = FuturesSession(max_workers=os.cpu_count())         
         for chunk in chunklist:
-            chunkRequest = session.get(chunk.url)
-            chunkResponse = chunkRequest.result()
-            
+            # Replace the chunk url with a future
+            chunk.url = session.get(chunk.url)
+        print("Finished Getting URLs, Waiting for responses")
+        concurrent.futures.wait([fchunk.url for fchunk in chunklist], timeout=5, return_when=concurrent.futures.ALL_COMPLETED)
+        for chunk in chunklist:
             with open(os.path.join(chunkpath, chunk.filename), "wb") as chunkWriter:
-                chunkWriter.write(chunkResponse.content)
-        try:        
-            if len(os.listdir(chunkpath)) != len(chunklist):
-                pass
-        except:
-            pass
+                chunkWriter.write(chunk.url.result().content)
+            del chunkWriter
+                
+        print("Finished Downloading Chunks")
                 
         # Once we've downloaded all of the chunks, we want to make a file that ffmpeg can work with.
         with open(os.path.join(path, "chunkindex.txt"), "w+") as chunkIndexWriter:
             for file in os.scandir(chunkpath):
+                # Get rid of all of the pesky id3 tags that we DONT NEED
+                audio = mid3.ID3(os.path.join(chunkpath, file.name))
+                audio.delete(os.path.join(chunkpath, file.name))
+                audio.save(os.path.join(chunkpath, file.name))
+                
                 chunkIndexWriter.write(f"file \'./chunks/{file.name}\'\n")
         
         # So we have a file now. We need execute it with ffmpeg in order to complete the download.
         if metadata == None:
             try:
-                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy {filename}.m4a -loglevel quiet"
+                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy {filename}.m4a -loglevel fatal"
                 subprocess.run(command, cwd=path)
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
