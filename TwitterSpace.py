@@ -19,7 +19,12 @@ from requests_futures.sessions import FuturesSession
 
 class TwitterSpace:
     TwitterUser = collections.namedtuple('TwitterUser', ['name', 'screen_name', 'id'])
-    SpacePlaylists = collections.namedtuple('SpacePlaylists', ['chunk_server', 'master_url'])
+    
+    @dataclass
+    class SpacePlaylists:
+        chunk_server: str
+        dyn_url: str
+        master_url: str
     
     @dataclass
     class Chunk:
@@ -65,11 +70,11 @@ class TwitterSpace:
             dataRequest = requests.get(f"https://twitter.com/i/api/1.1/live_video_stream/status/{media_key}", headers=headers)
             dataResponse = dataRequest.json()
             dataLocation = dataResponse['source']['location']
-            dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")
+            dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")[:-10]
             
         if dyn_url != None:
             dataLocation = dyn_url
-            dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")
+            dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")[:-10]
         
         dataComponents = urlparse(dataLocation)
         
@@ -85,7 +90,7 @@ class TwitterSpace:
         
         chunkServer = f"{dataServer}{dataPath[:-20]}"
         
-        return TwitterSpace.SpacePlaylists(chunkServer, playlistUrl)
+        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl)
     
     @staticmethod
     def getMetadata(space_id, guest_token):
@@ -119,6 +124,10 @@ class TwitterSpace:
         :param playlists: space playlist namedtuple
         :returns: list of all chunks
         """
+        try:
+            TwitterSpace.getPlaylists(dyn_url=playlists.dyn_url)
+        except Exception:
+            pass
         m3u8Request = requests.get(playlists.master_url)
         m3u8Data = m3u8Request.text
         chunkList = list()
@@ -144,10 +153,10 @@ class TwitterSpace:
             os.makedirs(path)
         if os.path.isdir(os.path.join(path, "chunks")) != True:
             os.makedirs(os.path.join(path, "chunks"))
-        chunkpath = os.path.join(path, "chunks")        
+        chunkpath = os.path.join(path, "chunks")
         
         # Get the amount of working threads that the machine has so we know how many to use
-        session = FuturesSession(max_workers=os.cpu_count())         
+        session = FuturesSession(max_workers=os.cpu_count())
         for chunk in chunklist:
             # Replace the chunk url with a future
             chunk.url = session.get(chunk.url)
@@ -228,11 +237,18 @@ class TwitterSpace:
         if space_id == None and self.metadata == None:
             self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
             
-        if self.metadata != None:
+        if self.metadata != None and self.state == "Running":
+            # Print out the space Information
+            print(f"Space Found! \n Space Title: {self.title} \n Space Host Username: {self.creator.screen_name} \n Space Host Display Name: {self.creator.name} \n Space Master URL: {self.playlists.master_url} \n Space Dynamic URL: {self.playlists.dyn_url}")
             while self.state == "Running":
-                time.sleep(60)
+                time.sleep(10)
                 self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
-                self.state = self.metadata["data"]["audioSpace"]["metadata"]["state"]
+                try:
+                    self.state = self.metadata["data"]["audioSpace"]["metadata"]["state"]
+                except Exception:
+                    self.state = "ERROR"
+                    
+            print("Space Ended. Now Downloading...")
             
         # Now let's format the fileformat per the user's request.
         # File Format Options:
