@@ -228,11 +228,11 @@ class SpaceChat:
                 chatwriter.write(message)
                 chatwriter.write('\n')
                 
-        def __init__(self, chat_token, chatfilename, filepath=os.getcwd()):
-            self.chat_token = chat_token
-            self.chatfilename = chatfilename
-            self.filepath = filepath
-            
-            # Download the chat
-            chatTokens = SpaceChat.get_tokens(self.chat_token)
-            SpaceChat.get_chatHistory(chatTokens, self.chatfilename, self.filepath)
+    def __init__(self, chat_token, chatfilename, filepath=os.getcwd()):
+        self.chat_token = chat_token
+        self.chatfilename = chatfilename
+        self.filepath = filepath
+        
+        # Download the chat
+        chatTokens = SpaceChat.get_tokens(self.chat_token)
+        SpaceChat.get_chatHistory(chatTokens, self.chatfilename, self.filepath)
