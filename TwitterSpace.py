@@ -10,6 +10,7 @@ import subprocess
 import collections
 import concurrent.futures
 import mutagen.id3 as mid3
+import WebSocketHandler
 
 from slugify import slugify
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ class TwitterSpace:
         chunk_server: str
         dyn_url: str
         master_url: str
+        chatToken: str
     
     @dataclass
     class Chunk:
@@ -72,6 +74,8 @@ class TwitterSpace:
             dataLocation = dataResponse['source']['location']
             dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")[:-10]
             
+            chatToken = dataResponse["chatToken"]
+            
         if dyn_url != None:
             dataLocation = dyn_url
             dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")[:-10]
@@ -90,7 +94,7 @@ class TwitterSpace:
         
         chunkServer = f"{dataServer}{dataPath[:-20]}"
         
-        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl)
+        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
     
     @staticmethod
     def getMetadata(space_id, guest_token):
@@ -204,7 +208,7 @@ class TwitterSpace:
 
             print(f"Successfully Downloaded Twitter Space {filename}.m4a")
             
-    def __init__(self, space_id=None, dyn_url=None, filename=None, filenameformat=None, path=None):
+    def __init__(self, space_id=None, dyn_url=None, filename=None, filenameformat=None, path=None, withChat=False):
         self.space_id = space_id
         self.dyn_url = dyn_url
         self.filename = filename
@@ -273,4 +277,8 @@ class TwitterSpace:
         
         if self.metadata != None:
             m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name}
-            TwitterSpace.downloadChunks(chunks, self.filenameformat, path=self.path, metadata=m4aMetadata)    
+            TwitterSpace.downloadChunks(chunks, self.filenameformat, path=self.path, metadata=m4aMetadata)
+            
+        if withChat == True:
+            print("Now Downloading Chat...")
+            WebSocketHandler.SpaceChat(self.playlists.chatToken, self.filenameformat, self.path)

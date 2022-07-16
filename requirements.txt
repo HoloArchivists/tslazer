@@ -1,3 +1,4 @@
 python-slugify
 requests-futures
 mutagen
+progressbar
