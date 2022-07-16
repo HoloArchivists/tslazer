@@ -99,9 +99,8 @@ class SpaceChat:
     def get_tokens(chat_token):
         url = "https://proxsee.pscp.tv/api/v2/accessChatPublic"
         payload = {"chat_token" : f"{chat_token}"}
-        headers = {"Cookie" : ""}
 
-        tokenRequest = requests.post(url, data=json.dumps(payload), headers=headers)
+        tokenRequest = requests.post(url, data=json.dumps(payload))
         tokenResponse = tokenRequest.json()
 
         return SpaceChat.ChatVars(tokenResponse["replay_endpoint"] + '/chatapi/v1/history', tokenResponse["replay_access_token"], tokenResponse["auth_token"], tokenResponse["access_token"], tokenResponse["endpoint"], tokenResponse["participant_index"], tokenResponse["room_id"])
