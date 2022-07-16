@@ -17,6 +17,7 @@ Also it's **Lazer** fast. It uses dynamic threading to ensure you always get the
     
     Special Arguments:
       -h [ --help ]          Displays the help page
+      -c [ --withchat]       Exports the Chat
     
     Required Arguments:
       -f [ --fileformat ] arg  File Format (see Format options)
