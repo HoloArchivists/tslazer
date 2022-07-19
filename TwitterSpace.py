@@ -196,7 +196,7 @@ class TwitterSpace:
                 audio.delete(os.path.join(chunkpath, file.name))
                 audio.save(os.path.join(chunkpath, file.name))
                 
-                chunkIndexWriter.write(f"file \'./chunks/{file.name}\'\n")
+                chunkIndexWriter.write(f"file \'./{uniqueFoldername}/{file.name}\'\n")
         
         # So we have a file now. We need execute it with ffmpeg in order to complete the download.
         if metadata == None:
@@ -311,6 +311,7 @@ class TwitterSpace:
         if self.metadata == None:
             TwitterSpace.downloadChunks(chunks, self.filename, path=self.path)
         
-        if self.metadata != None and self.state == "Ended" and self.wasrunning == True:
+        if self.metadata != None:
             m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name}
-            TwitterSpace.downloadChunks(chunks, filename=self.filenameformat, path=self.path, metadata=m4aMetadata)
+            spaceThread = Thread(target=TwitterSpace.downloadChunks, args=(chunks, self.filenameformat, self.path, m4aMetadata,))
+            spaceThread.start()
