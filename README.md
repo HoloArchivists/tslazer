@@ -1,7 +1,7 @@
 ### Tslazer
-This is a program to download Twitter Spaces from the command line. It's also a simpler alternative to Ryu1845's twspace-dl.
+This is a program to download Twitter Spaces from the command line. It's also a minimalistic alternative to Ryu1845's twspace-dl.
 
-Also it's **Lazer** fast. It uses dynamic threading to ensure you always get the optimal download speed. 
+Also it's **Lazer** fast. It uses threading to ensure you always get the optimal download speed. 
 #### Usage
 
 |  Supported URL Sources | Example|

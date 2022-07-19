@@ -1,10 +1,12 @@
-import collections
-import progressbar
-import time
-from dataclasses import dataclass
-import requests
-import json
+# WebSocketHandler.py
+# Written By ef1500
+# Purpose: Export Twitter Space Chats
 import os
+import json
+import requests
+import collections
+
+from dataclasses import dataclass
 
 class SpaceChat:
     TwitterUser = collections.namedtuple('TwitterUser', ['name', 'screen_name', 'id'])
@@ -98,10 +100,9 @@ class SpaceChat:
     @staticmethod
     def get_tokens(chat_token):
         url = "https://proxsee.pscp.tv/api/v2/accessChatPublic"
-        payload = {"chat_token" : f"{chat_token}"}
-        headers = {"Cookie" : ""}
+        payload = {"chat_token": chat_token}
 
-        tokenRequest = requests.post(url, data=json.dumps(payload), headers=headers)
+        tokenRequest = requests.post(url, data=json.dumps(payload))
         tokenResponse = tokenRequest.json()
 
         return SpaceChat.ChatVars(tokenResponse["replay_endpoint"] + '/chatapi/v1/history', tokenResponse["replay_access_token"], tokenResponse["auth_token"], tokenResponse["access_token"], tokenResponse["endpoint"], tokenResponse["participant_index"], tokenResponse["room_id"])
@@ -129,12 +130,14 @@ class SpaceChat:
         messagekind = SpaceChat.UserActions[msg["kind"]] # Type of message sent
         messagepayload = json.loads(msg["payload"])
         messagesender = messagepayload["sender"]
-
-        sender = SpaceChat.PayloadSender(messagesender["twitter_id"], messagesender["username"], messagesender["display_name"], messagesender["profile_image_url"])
-        fullSenderData = f"Sender Username:{sender.sender_username} Sender Display Name: {sender.sender_display_name} Sender User ID: {sender.sender_user_id}"
         
-        senderlite = SpaceChat.PayloadSenderLite(messagesender["twitter_id"])
-        liteSenderData = f"Sender User ID: {sender.sender_user_id}"
+        try:
+            sender = SpaceChat.PayloadSender(messagesender["twitter_id"], messagesender["username"], messagesender["display_name"], messagesender["profile_image_url"])
+            fullSenderData = f"Sender Username:{sender.sender_username} Sender Display Name: {sender.sender_display_name} Sender User ID: {sender.sender_user_id}"
+        except:
+            sender = SpaceChat.PayloadSenderLite(messagesender["twitter_id"])
+            fullSenderData = f"Sender User ID: {sender.sender_user_id}"
+            pass
        
         if messagekind == "Chat":
             messagetype = SpaceChat.RecordableActionTypes[json.loads(messagepayload["body"])["type"]]
@@ -210,12 +213,12 @@ class SpaceChat:
                 pass
         
         print("\n Finished Capturing Chat! Now Parsing...")
-        widgets = [progressbar.Counter(), " Messages Parsed ", "[", progressbar.Percentage() ,"]"]
-        for i in progressbar.progressbar(range(len(chatHistory)), widgets=widgets):
-            time.sleep(0.1)
-            for raw_message in chatHistory:
-                parsed_message = SpaceChat.parseMessage(raw_message)
-                parsedMessages.append(parsed_message)
+        parsed_messages = 0
+        for raw_message in chatHistory:
+            parsed_message = SpaceChat.parseMessage(raw_message)
+            parsedMessages.append(parsed_message)
+            parsed_messages += 1
+            print(f"Parsed {parsed_messages} Messages", end="\r")
                 
             
 #        for message in chatHistory:

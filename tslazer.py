@@ -1,8 +1,8 @@
 # tslazer.py
 # author: ef1500
-import TwitterSpace
-import argparse
 import os
+import argparse
+import TwitterSpace
 
 parser = argparse.ArgumentParser(description="Download Twitter Spaces at lazer fast speeds!", formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument("--path", "-p", type=str, help="Path to download the space")

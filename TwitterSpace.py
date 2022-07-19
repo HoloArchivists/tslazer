@@ -3,6 +3,7 @@
 
 import os
 import re
+import uuid
 import time
 import shutil
 import requests
@@ -10,9 +11,11 @@ import subprocess
 import collections
 import concurrent.futures
 import mutagen.id3 as mid3
+
 import WebSocketHandler
 
 from slugify import slugify
+from threading import Thread
 from dataclasses import dataclass
 from urllib.parse import urlparse
 from requests_futures.sessions import FuturesSession
@@ -72,13 +75,14 @@ class TwitterSpace:
             dataRequest = requests.get(f"https://twitter.com/i/api/1.1/live_video_stream/status/{media_key}", headers=headers)
             dataResponse = dataRequest.json()
             dataLocation = dataResponse['source']['location']
-            dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")[:-10]
+            dataLocation = re.sub(r"(dynamic_playlist\.m3u8((?=\?)(\?type=[a-z]{4,}))?|master_playlist\.m3u8(?=\?)(\?type=[a-z]{4,}))", "master_playlist.m3u8", dataLocation)
             
             chatToken = dataResponse["chatToken"]
             
         if dyn_url != None:
             dataLocation = dyn_url
-            dataLocation = dataLocation.replace("dynamic_playlist", "master_playlist")[:-10]
+            dataLocation = re.sub(r"(dynamic_playlist\.m3u8((?=\?)(\?type=[a-z]{4,}))?|master_playlist\.m3u8(?=\?)(\?type=[a-z]{4,}))", "master_playlist.m3u8", dataLocation)
+            chatToken = "None"
         
         dataComponents = urlparse(dataLocation)
         
@@ -93,8 +97,11 @@ class TwitterSpace:
         playlistUrl = f"{dataServer}{playlistResponse}"
         
         chunkServer = f"{dataServer}{dataPath[:-20]}"
-        
-        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+#        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+        if playlistResponse == "#EXT-X-ENDLIST":
+            return TwitterSpace.SpacePlaylists(chunkServer[:-14], f"{dataServer}{dataPath}" , f"{dataServer}{dataPath}", chatToken)
+        else:
+            return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
     
     @staticmethod
     def getMetadata(space_id, guest_token):
@@ -132,6 +139,7 @@ class TwitterSpace:
             TwitterSpace.getPlaylists(dyn_url=playlists.dyn_url)
         except Exception:
             pass
+        
         m3u8Request = requests.get(playlists.master_url)
         m3u8Data = m3u8Request.text
         chunkList = list()
@@ -153,19 +161,23 @@ class TwitterSpace:
         :returns: None
         """
         # Check if the path exists
+        uniqueFoldername = str(uuid.uuid4().hex) # Create A Unique Folder Name for the Program to operate in
         if os.path.isdir(path) != True:
-            os.makedirs(path)
-        if os.path.isdir(os.path.join(path, "chunks")) != True:
-            os.makedirs(os.path.join(path, "chunks"))
-        chunkpath = os.path.join(path, "chunks")
+            os.makedirs(path) # Do I even need this?
+            
+        if os.path.isdir(os.path.join(path, uniqueFoldername)) != True:
+            os.makedirs(os.path.join(path, uniqueFoldername))
+        chunkpath = os.path.join(path, uniqueFoldername)
         
         # Get the amount of working threads that the machine has so we know how many to use
         session = FuturesSession(max_workers=os.cpu_count())
+        
         for chunk in chunklist:
             # Replace the chunk url with a future
             chunk.url = session.get(chunk.url)
         print("Finished Getting URLs, Waiting for responses")
         concurrent.futures.wait([fchunk.url for fchunk in chunklist], timeout=5, return_when=concurrent.futures.ALL_COMPLETED)
+        
         for chunk in chunklist:
             with open(os.path.join(chunkpath, chunk.filename), "wb") as chunkWriter:
                 chunkWriter.write(chunk.url.result().content)
@@ -177,6 +189,9 @@ class TwitterSpace:
         with open(os.path.join(path, "chunkindex.txt"), "w+") as chunkIndexWriter:
             for file in os.scandir(chunkpath):
                 # Get rid of all of the pesky id3 tags that we DONT NEED
+                # Note: If the space has already ended, sometimes the ID3 Tags are gone, as
+                # The HydraControlMessages are only used during a live space and are cleaned
+                # After the space has ended.
                 audio = mid3.ID3(os.path.join(chunkpath, file.name))
                 audio.delete(os.path.join(chunkpath, file.name))
                 audio.save(os.path.join(chunkpath, file.name))
@@ -216,6 +231,7 @@ class TwitterSpace:
         self.path = path
         self.metadata = None
         self.playlists = None
+        self.wasrunning = False
         
         # Get the metadata (If applicable)
         if self.space_id != None:
@@ -224,16 +240,18 @@ class TwitterSpace:
             
         # If there's metadata, set the metadata.
         if self.metadata != None:
+            
             try:
                 self.title = self.metadata['data']['audioSpace']['metadata']['title']
             except Exception:
-                self.title = self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["screen_name"].__add__("\'s space")
+                self.title = self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["screen_name"].__add__("\'s space") # IF We couldn't get the space Title, just use twitter's default here.
+                
             self.media_key = self.metadata["data"]["audioSpace"]["metadata"]["media_key"]
             self.state = self.metadata["data"]["audioSpace"]["metadata"]["state"]
             self.created_at = self.metadata["data"]["audioSpace"]["metadata"]["created_at"]
             self.started_at = self.metadata["data"]["audioSpace"]["metadata"]["started_at"]
             self.updated_at = self.metadata["data"]["audioSpace"]["metadata"]["updated_at"]
-            self.creator = TwitterSpace.TwitterUser(self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["name"],self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["screen_name"] ,self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["rest_id"])
+            self.creator = TwitterSpace.TwitterUser(self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["name"], self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["screen_name"], self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["rest_id"])
             
         # Now lets get the playlists
         if space_id != None and self.metadata != None:
@@ -241,26 +259,14 @@ class TwitterSpace:
         if space_id == None and self.metadata == None:
             self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
             
-        if self.metadata != None and self.state == "Running":
-            # Print out the space Information
-            print(f"Space Found! \n Space Title: {self.title} \n Space Host Username: {self.creator.screen_name} \n Space Host Display Name: {self.creator.name} \n Space Master URL: {self.playlists.master_url} \n Space Dynamic URL: {self.playlists.dyn_url}")
-            while self.state == "Running":
-                time.sleep(10)
-                self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
-                try:
-                    self.state = self.metadata["data"]["audioSpace"]["metadata"]["state"]
-                except Exception:
-                    self.state = "ERROR"
-                    
-            print("Space Ended. Now Downloading...")
-            
+        # Get the Fileformat here, so that way it won't hinder the chat exporter when it's running.
         # Now let's format the fileformat per the user's request.
         # File Format Options:
         #    %Ud	Host Display Name
         #    %Un	Host Username
         #    %Ui	Host User ID
         #    %St	Space Title
-        #    %Si	Space ID    
+        #    %Si	Space ID
         if self.filenameformat != None and self.metadata != None:
             self.filenameformat = self.filenameformat.replace("%Ud", self.creator.name)
             self.filenameformat = self.filenameformat.replace("%Un", self.creator.screen_name)
@@ -269,16 +275,42 @@ class TwitterSpace:
             self.filenameformat = self.filenameformat.replace("%Ui", self.space_id)
             self.filenameformat = slugify(self.filenameformat, allow_unicode=True, lowercase=False, separator='_')
             
+        # Now Start a subprocess for running the chat exporter
+        if withChat == True and self.metadata != None:
+            print("[ChatExporter] Chat Exporting is currently only supported for Ended Spaces with a recording. To Export Chat for a live space, copy the chat token and use WebSocketDriver.py.")
+            chatThread = Thread(target=WebSocketHandler.SpaceChat, args=(self.playlists.chatToken, self.filenameformat, self.path,))
+            #chatThread.start()
+            
+        # Print out the Space Information and wait for the Space to End (if it's running)             
+        if self.metadata != None and self.state == "Running":
+            self.wasrunning = True
+            # Print out the space Information
+            print(f"Space Found! \n Space Title: {self.title} \n Space Host Username: {self.creator.screen_name} \n Space Host Display Name: {self.creator.name} \n Space Master URL: {self.playlists.master_url} \n Space Dynamic URL: {self.playlists.dyn_url} \n Chat Token: {self.playlists.chatToken}")
+            while self.state == "Running":
+                time.sleep(10)
+                self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
+                try:
+                    self.state = self.metadata["data"]["audioSpace"]["metadata"]["state"]
+                except Exception:
+                    self.state = "ERROR"
+        
+        if self.metadata != None and self.state == "Ended" and self.wasrunning == False:
+            try:
+            # Print out the space Information
+                print(f"Space Has Finished and Recording was found!")
+                chatThread.start() # If We're Downloading a Recording, we're all good to download the chat.
+                print("[ChatExporter]: Chat Thread Started")
+            except Exception:
+                print("Space Ended and Unable to get master url.")
+                
+            print("Space Ended. Now Downloading...")
+            
         # Now it's time to download.
         chunks = TwitterSpace.getChunks(self.playlists)
         
         if self.metadata == None:
             TwitterSpace.downloadChunks(chunks, self.filename, path=self.path)
         
-        if self.metadata != None:
+        if self.metadata != None and self.state == "Ended" and self.wasrunning == True:
             m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name}
-            TwitterSpace.downloadChunks(chunks, self.filenameformat, path=self.path, metadata=m4aMetadata)
-            
-        if withChat == True:
-            print("Now Downloading Chat...")
-            WebSocketHandler.SpaceChat(self.playlists.chatToken, self.filenameformat, self.path)
+            TwitterSpace.downloadChunks(chunks, filename=self.filenameformat, path=self.path, metadata=m4aMetadata)
