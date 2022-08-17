@@ -12,10 +12,10 @@ spaceID_group.add_argument("--space_id", "-s", type=str, help="Twitter Space ID 
 spaceID_group.add_argument("--withchat", "-c", action='store_true', help="Export the Twitter Space's Chat")
 
 fileformat_options = """
-    %%Ud	Host Display Name
-    %%Un	Host Username
-    %%Ui	Host User ID
-    %%St	Space Title
+    %%Ud	Host Display Name     %%Dy Year
+    %%Un	Host Username         %%Dm Month     
+    %%Ui	Host User ID          %%Dt Time (Utc)
+    %%St	Space Title           %%Dl Time (Local)
     %%Si	Space ID
     """
 spaceID_group.add_argument("--fileformat", "-f", type=str, help=f"File Format Options: {fileformat_options}")
