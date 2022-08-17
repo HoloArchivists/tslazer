@@ -13,26 +13,33 @@ Also it's **Lazer** fast. It uses threading to ensure you always get the optimal
 
 
     >python3 tslazer.py --help
-    Allowed Options:
-    
-    Special Arguments:
-      -h [ --help ]          Displays the help page
-      -c [ --withchat]       Exports the Chat
-    
-    Required Arguments:
-      -f [ --fileformat ] arg  File Format (see Format options)
-                              NOTE: The File Formatting Options are not comaptible
-                             with Master URLs.
-                             Format options
-                                %Ud	Host Display Name
-                                %Un	Host Username
-                                %Ui	Host User ID
-                                %St	Space Title
-                                %Si	Space ID
-    
-    Link Arguments:
-      --dyn_url arg          Input Master/Dynamic URL
-      --space_id arg         Input Space ID/URL
+    usage: tslazer.py [-h] [--path PATH] [--space_id SPACE_ID] [--withchat] [--fileformat FILEFORMAT] [--dyn_url DYN_URL] [--filename FILENAME]
+
+    Download Twitter Spaces at lazer fast speeds!
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --path PATH, -p PATH  Path to download the space
+
+    Downloading from a Space ID/URL:
+      --space_id SPACE_ID, -s SPACE_ID
+                            Twitter Space ID or URL
+      --withchat, -c        Export the Twitter Space's Chat
+      --fileformat FILEFORMAT, -f FILEFORMAT
+                            File Format Options:
+                                %Ud Host Display Name     %Dy Year
+                                %Un Host Username         %Dm Month
+                                %Ui Host User ID          %Dt Time (Utc)
+                                %St Space Title           %Dl Time (Local)
+                                %Si Space ID
+
+
+    Downloading from a dynamic or master URL:
+      --dyn_url DYN_URL, -d DYN_URL
+                            Twitter Space Master URL or Dynamic Playlist URL
+      --filename FILENAME, -fn FILENAME
+                            Filename for the Twitter Space
+
 
 |  Argument  |  Description |
 | ------------ | ------------ |
