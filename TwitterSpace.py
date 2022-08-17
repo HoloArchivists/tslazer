@@ -293,6 +293,12 @@ class TwitterSpace:
         if space_id == None and self.metadata == None:
             self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
             
+        # Now Start a subprocess for running the chat exporter
+        if withChat == True and self.metadata != None:
+            print("[ChatExporter] Chat Exporting is currently only supported for Ended Spaces with a recording. To Export Chat for a live space, copy the chat token and use WebSocketDriver.py.")
+            chatThread = Thread(target=WebSocketHandler.SpaceChat, args=(self.playlists.chatToken, self.filenameformat, self.path,))
+            #chatThread.start()
+            
         # Print out the Space Information and wait for the Space to End (if it's running)             
         if self.metadata != None and self.state == "Running":
             self.wasrunning = True
@@ -307,6 +313,16 @@ class TwitterSpace:
                 except Exception:
                     self.state = "ERROR"
             print("Space Ended. Now Downloading...")
+        
+#        if self.metadata != None and self.state == "Ended" and self.wasrunning == False:
+#            try:
+            # Print out the space Information
+#                print(f"Space Has Finished and Recording was found!")
+#                if self.withChat == True:
+#                    chatThread.start() # If We're Downloading a Recording, we're all good to download the chat.
+#                print("[ChatExporter]: Chat Thread Started")
+#            except Exception:
+#                print("Space Ended and Unable to get master url.")
             
         # Now it's time to download.        
         if self.metadata == None:
@@ -321,7 +337,6 @@ class TwitterSpace:
  #           spaceThread = Thread(target=TwitterSpace.downloadChunks, args=(chunks, self.filenameformat, self.path, m4aMetadata,))
 #            spaceThread.start()
             
-        if self.metadata != None and self.state == "Ended" and withChat == True:
-            chatThread = Thread(target=WebSocketHandler.SpaceChat, args=(self.playlists.chatToken, self.filenameformat, self.path,))
+        if self.metadata != None and self.state == "Ended" and withChat == True and self.wasrunning == False:
             chatThread.start() # If We're Downloading a Recording, we're all good to download the chat.
             print("[ChatExporter]: Chat Thread Started")
