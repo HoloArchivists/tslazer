@@ -11,6 +11,7 @@ import subprocess
 import collections
 import concurrent.futures
 import mutagen.id3 as mid3
+from sys import platform
 from datetime import datetime,timezone
 
 import WebSocketHandler
@@ -203,7 +204,12 @@ class TwitterSpace:
         if metadata == None:
             try:
                 command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy {filename}.m4a -loglevel fatal"
-                subprocess.run(command, cwd=path)
+                
+                if platform == "linux" or platform == "linux2":  
+                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
+                else:
+                    subprocess.run(command, cwd=path)
+
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
@@ -214,8 +220,13 @@ class TwitterSpace:
             try:
                 title = metadata["title"]
                 author = metadata["author"]
+                                  
                 command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" {filename}.m4a -loglevel fatal"
-                subprocess.run(command, cwd=path)
+                
+                if platform == "linux" or platform == "linux2":  
+                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
+                else:
+                    subprocess.run(command, cwd=path)
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
