@@ -9,6 +9,9 @@ Also it's **Lazer** fast. It uses threading to ensure you always get the optimal
 | Space ID/URL | `tslazer --space_id 1ZkJzbdvLgyJv --fileformat %St_%Ud` |
 | Master/Dynamic URL| `tslazer --dyn_url DYN_URL --filename space` |
 
+### Requirements
+This program requires `ffmpeg` to work. You can install it using `sudo apt install ffmpeg`.
+
 #### Arguments
 
 
