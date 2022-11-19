@@ -107,6 +107,8 @@ These are features that I will do my best to implement, but I can't offer any gu
 - Space Monitoring
 - Scheduled Spaces Support
 - Monitor Multiple users at a time
+- Chat Replay (With Generate Video)
+- More Video Templates
 
 ### Special Thanks
 [@notpeko](https://github.com/notpeko "@notpeko")
