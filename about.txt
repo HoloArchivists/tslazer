@@ -1,0 +1,5 @@
+Features:
+Monitor Mode
+Discord Integration
+Chat downloader
+Local Replay

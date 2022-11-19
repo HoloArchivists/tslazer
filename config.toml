@@ -1,0 +1,34 @@
+# Config.toml
+
+# authentication config. Set user to false if you want to use
+# Guest-mode only. Some features will be depreciated
+[auth]
+user = false
+authtoken = "Bearer BLAHBLAHBLAH"
+crsftoken = "CRSFTOKEN HERE"
+cookies = "PASTE YOUR COOKIES HERE"
+
+[monitorconfig] # COMING SOON
+monitormode = false # set to true only if you want to monitor a list of users
+monitorlist = "path_to_monitor_list"
+
+[dlconfig]
+dlpath = "./" # Path to download the spaces to
+format = "%St-%Si-%Ud-%Un" # format string to download with
+ffmpeglocation = "ffmpeg" # ffmpeg absolute location
+withmeta = true # Download with metadata
+withchat = false # Download the chat
+writeinfo = false # create a file for various info (if you want to check if they're still up)
+withshares = false # Download any shared tweets as well
+keepm3u8 = false # Keep the m3u8 playlists
+generatevideo = true # Generate a shareable mp4
+
+[cliconfig]
+banner = "./prettifiers/banner.txt"
+optionsbanner = "./prettifiers/options.txt"
+displayinfo = true # Display info while downloading
+
+[webhook] # COMING SOON
+webhook = false
+autoupload = false # Auto upload to a server
+webhook_url = "webhook URL HERE"

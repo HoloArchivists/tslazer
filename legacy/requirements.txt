@@ -1,0 +1,3 @@
+mutagen
+python-slugify
+requests-futures
