@@ -1,0 +1,4 @@
+pydub
+ffmpeg
+matplotlib
+requests-futures

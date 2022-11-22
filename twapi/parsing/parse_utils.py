@@ -1,9 +1,10 @@
+import json
+import logging
 import os
 import re
-import requests
-import json
 from urllib.parse import urlparse
-import logging
+
+import requests
 
 
 def parse_data(path, url_data, writeinfo):

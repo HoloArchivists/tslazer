@@ -1,5 +1,8 @@
 import requests
 import json
+import twapi.parsing.chat_parser as chat_parser
+
+# The chat downloading module is not completed yet
 
 def get_chat_access_tokens(chat_token):
     url = "https://proxsee.pscp.tv/api/v2/accessChatPublic"
@@ -42,8 +45,8 @@ def get_chat_messages(chat_replay_endpoint, chat_replay_token):
         list_concat(chat_log)
     return chat_messages
 
-if __name__ == '__main__':
-    messages = get_chat_messages("https://chatman-replay-eu-central-1.pscp.tv/chatapi/v1/history", "2YpkT4WS-o45M5D8jpKRlG0kdyBrLQ9Nk7SNPAgbGhceskttEMw7MzVD65t0rzy5yqKbhh4xvmmGlUIs3cCJD1WSSy5HjaTszOFaLn7NQp5ES_xOtWh5iPHXO9B3LfQDQBvFTe2CZLaSXwGxcKgUVOWKanqKKf2iiLUx8FpQGMnIOJYoB5zgElmhfTdIulUuR_proGzSrBFWM0m7ab9aocxyMovU2jN1Vlf4Jp0aqS8Gi8M2tPGPRo_VALCBYlWos1qLZfcNAZCXh7C0uvqOVQtKQekUqFG8")
-    with open("messages.txt", mode='w', encoding='utf-8') as chat:
-        for message in messages:
-            chat.write(str(message))
+def parse_all_messages(messages):
+    msg = list()
+    for message in messages:
+        msg.append(chat_parser.parse_message(message))
+    return msg

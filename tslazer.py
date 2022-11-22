@@ -50,45 +50,53 @@ flag_group.add_argument("--writeinfo", "-wi", action='store_true', default=False
 # Download Twitter Space From Username (With Config) - Operational
 # DOwnload Twitter Space From User ID (From Config) - Operational
 # Download Twitter Space From Space ID Using Guest API (With Config) - Operational!
-# Download Twitter Space From Master URL (No Config)
+# Download Twitter Space From Master URL (No Config) - Operational!
 # Download Twitter Space From Space ID (No Config) - OPERATIONAL!
-# Download Twitter Space From User ID (No Config)
-# Download Twitter Space From Space ID Using Guest API (No Config)
+# Download Twitter Space From User ID (No Config) - Operational!
+# Download Twitter Space From Space ID Using Guest API (No Config) - Operational!
 
 args = parser.parse_args()
 
-if args.help is True:
-    space_dl.show_help()
+if args.dyn_url is not None and args.filename is None:
+    print("[TSLAZER] Missing Filename Argument!")
     exit()
 
-if args.dyn_url != None and args.filename == None:
-    print("[TSLAZER] Missing Filename Argument!")
-        
 if (args.user_id or args.username) and args.guestmode:
     print("[TSLAZER] You are trying to perform an action which requires authentication.")
-
-if args.space_id and args.config:
-    space_dl.download_from_config(args.config, args.space_id, None, None, None)
-    exit()
-    
-if args.user_id and args.config:
-    space_dl.download_from_config(args.config, user_id=args.user_id)
-    exit()
-    
-if args.username and args.config:
-    space_dl.download_from_config(args.config, screen_name=args.username)
-    exit()
-    
-if args.dyn_url and args.filename and args.config:
-    space_dl.download_from_config(args.config, dynamic_url=args.dyn_url, output_filename=args.filename)
-    exit()
-    
-if args.space_id and not args.config and not args.authtoken:
-    space_dl.download_from_cli(space_id=args.space_id, format_str=args.fileformat, withmeta=args.withmeta, keepm3u8=args.keepm3u8,
-                               writeinfo=args.writeinfo, generatevideo=args.generatevideo, ffmpeglocation=args.ffmpeglocation, dlpath=args.path)
     exit()
 
-if args.dyn_url and args.filename and not args.config:
-    space_dl.download_from_cli(dynamic_url=args.dyn_url, output_filename=args.filename, keepm3u8=args.keepm3u8, writeinfo=args.writeinfo, 
-                               ffmpeglocation=args.ffmpeglocation, dlpath=args.path)
+if args.space_id and not (args.fileformat or args.config):
+    print("[TSLAZER] Missing Filename Format String or Config.")
     exit()
+
+if args.config:
+    if args.space_id:
+        space_dl.download_from_config(args.config, args.space_id, None, None, None)
+        exit()
+
+    if args.user_id:
+        space_dl.download_from_config(args.config, user_id=args.user_id)
+        exit()
+
+    if args.username:
+        space_dl.download_from_config(args.config, screen_name=args.username)
+        exit()
+
+    if args.dyn_url and args.filename:
+        space_dl.download_from_config(args.config, dynamic_url=args.dyn_url, 
+                                      output_filename=args.filename)
+        exit()
+
+else:
+    if args.space_id and not args.authtoken:
+        space_dl.download_from_cli(space_id=args.space_id, format_str=args.fileformat,
+                                   withmeta=args.withmeta, keepm3u8=args.keepm3u8,
+                                   writeinfo=args.writeinfo, withchat=args.withchat,
+                                   generatevideo=args.generatevideo,ffmpeglocation=args.ffmpeglocation, dlpath=args.path)
+        exit()
+
+    if args.dyn_url and args.filename and not args.config:
+        space_dl.download_from_cli(dynamic_url=args.dyn_url, output_filename=args.filename, 
+                                   keepm3u8=args.keepm3u8,writeinfo=args.writeinfo,
+                                   ffmpeglocation=args.ffmpeglocation, dlpath=args.path)
+        exit()
