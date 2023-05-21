@@ -1,5 +1,6 @@
 ### Tslazer
 This is a program to download Twitter Spaces from the command line.
+**Note**: If you would like extended functionality, please use the 'twtiter-space-overhaul' branch.
 
 ### Features
 - Video Generation
