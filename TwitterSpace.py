@@ -138,7 +138,7 @@ class TwitterSpace:
         :returns: list of all chunks
         """
         try:
-            TwitterSpace.getPlaylists(dyn_url=playlists.dyn_url)
+            playlists = TwitterSpace.getPlaylists(dyn_url=playlists.dyn_url)
         except Exception:
             pass
         
