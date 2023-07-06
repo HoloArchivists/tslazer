@@ -1,7 +1,19 @@
 ### Tslazer
 This is a program to download Twitter Spaces from the command line. 
 
-Also it's **Lazer** fast. It uses threading to ensure you always get the optimal download speed. 
+Also it's **Lazer** fast. It uses threading to ensure you always get the optimal download speed.
+
+## 🚨 Important Update: July 2023 🚨
+Due to recent changes in Twitter's API, the current version of this tool is no longer functional. Twitter seems to have dissolved the usage of guest tokens, meaning that tslazer can no longer download spaces without authorization/credentials. [Read more...](#project-status)
+
+## Project Status
+As of July 2023, changes to Twitter's API have rendered tslazer's ability to download Twitter Spaces without authorization or credentials is now broken.
+
+### What Happened?
+Twitter seems to have dissloved guest API access and/or twitter's v1.1 API. Because of this, the mechanism to retrieve the metadata for Twitter Spaces is now broken. You can read Twitter's official piece on it [here](https://twittercommunity.com/t/reminder-to-migrate-to-the-new-free-basic-or-enterprise-plans-of-the-twitter-api/189737). The API features required to retrieve and download spaces are now locked behind a paywall. However, you may have luck with downloading Twitter Spaces with the [Twitter Space Overhaul](https://github.com/HoloArchivists/tslazer/tree/twitter-space-overhaul) branch, though I'm uncertain.
+
+### How can I help?
+If you have a solution to bypass this paywall, restore functionality, or renovate the tool, I **strongly implore** you to lend your invaluable contribution and helping hand. I believe that the only way we as programmers can overcome this is with the power of teamwork. The power to recusitate this project and tool lies in **your** hands.
 
 **Note: If you would like extended functionality, please use the 'twtiter-space-overhaul' branch.**
 #### Usage
