@@ -14,6 +14,8 @@ Twitter seems to have dissloved guest API access and/or twitter's v1.1 API. Beca
 ### How can I help?
 If you have a solution to bypass this paywall, restore functionality, or renovate the tool, I **strongly implore** you to lend your invaluable contribution and helping hand. I believe that the only way we as programmers can overcome this is with the power of teamwork. The power to recusitate this project and tool lies in **your** hands.
 
+I have begun a [wiki](https://github.com/HoloArchivists/tslazer/wiki) for this project, where I attempt to explain how the mechanics of Twitter Spaces work, and I would encourage you to start there if you are interested and/or want to contribute.
+
 **Note: If you would like extended functionality, please use the 'twtiter-space-overhaul' branch.**
 #### Usage
 
