@@ -4,8 +4,7 @@ This is a program to download Twitter Spaces from the command line.
 Also it's **Lazer** fast. It uses threading to ensure you always get the optimal download speed.
 
 ## 🚨 Important Update: July 2023 🚨
-Due to recent changes in Twitter's API, the current version of this tool is no longer functional. Twitter seems to have dissolved the usage of guest tokens, meaning that tslazer can no longer download spaces without authorization/credentials. [Read more...](#project-status)
-
+Due to recent changes in Twitter's API, the current version of this tool is no longer functional. Twitter seems to have dissolved the usage of guest tokens, meaning that tslazer can no longer download spaces without authorization/credentials.
 ## Project Status
 As of July 2023, changes to Twitter's API have rendered tslazer's ability to download Twitter Spaces without authorization or credentials is now broken.
 
