@@ -13,8 +13,11 @@ import concurrent.futures
 import mutagen.id3 as mid3
 from sys import platform
 from datetime import datetime,timezone
+import urllib.parse
+import json
 
 import WebSocketHandler
+from CookieReader import CookieReader
 
 from slugify import slugify
 from threading import Thread
@@ -115,7 +118,7 @@ class TwitterSpace:
         :param guest_token: Guest Token
         """
         try:
-            spaceID = re.findall(r"\d[a-zA-Z]{12}", space_id)[0]
+            spaceID = self.get_space_id(space_id)
         except Exception:
             print("Unable to find a space ID, please try again.")
             
@@ -129,6 +132,65 @@ class TwitterSpace:
         
         return metadataResponse
     
+    @staticmethod
+    def getMetadataWithCookies(space_id: str,  cookies: dict[str,str]):
+        space_id = TwitterSpace.get_space_id(space_id)
+
+        cookie_header = "; ".join([f"{name}={value}" for name, value in cookies.items()])
+        headers = {
+            "authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", 
+            "x-csrf-token" : cookies['ct0'],
+            "cookie": cookie_header
+        }  
+
+        variables = {
+            "id": space_id,
+            "isMetatagsQuery": True,
+            "withReplays": True,
+            "withListeners": True
+        }
+
+        features = {
+            "spaces_2022_h2_clipping": True,
+            "spaces_2022_h2_spaces_communities": True,
+            "responsive_web_graphql_exclude_directive_enabled": True,
+            "verified_phone_label_enabled": False,
+            "creator_subscriptions_tweet_preview_api_enabled": True,
+            "responsive_web_graphql_skip_user_profile_image_extensions_enabled": False,
+            "tweetypie_unmention_optimization_enabled": True,
+            "responsive_web_edit_tweet_api_enabled": True,
+            "graphql_is_translatable_rweb_tweet_is_translatable_enabled": True,
+            "view_counts_everywhere_api_enabled": True,
+            "longform_notetweets_consumption_enabled": True,
+            "responsive_web_twitter_article_tweet_consumption_enabled": False,
+            "tweet_awards_web_tipping_enabled": False,
+            "freedom_of_speech_not_reach_fetch_enabled": True,
+            "standardized_nudges_misinfo": True,
+            "tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": True,
+            "responsive_web_graphql_timeline_navigation_enabled": True,
+            "longform_notetweets_rich_text_read_enabled": True,
+            "longform_notetweets_inline_media_enabled": True,
+            "responsive_web_media_download_video_enabled": False,
+            "responsive_web_enhance_cards_enabled": False
+        }
+
+        encoded_variables = urllib.parse.quote(json.dumps(variables, indent=None, separators=(",", ":")))
+        encoded_features = urllib.parse.quote(json.dumps(features, indent=None, separators=(",", ":")))
+
+        url = f"https://twitter.com/i/api/graphql/xVEzTKg_mLTHubK5ayL0HA/AudioSpaceById?variables={encoded_variables}&features={encoded_features}"
+
+        metadataRequest = requests.get(url, headers=headers, cookies=cookies)
+        metadataResponse = metadataRequest.json()
+        
+        return metadataResponse
+    
+    @staticmethod
+    def get_space_id(space_id) -> str:
+        try:
+            return re.findall(r"\d[a-zA-Z]{12}", space_id)[0]
+        except Exception:
+            print("Unable to find a space ID, please try again.")
+
     @staticmethod
     def getChunks(playlists):
         """
@@ -235,20 +297,26 @@ class TwitterSpace:
 
             print(f"Successfully Downloaded Twitter Space {filename}.m4a")
             
-    def __init__(self, space_id=None, dyn_url=None, filename=None, filenameformat=None, path=None, withChat=False):
+    def __init__(self, space_id=None, dyn_url=None, filename=None, filenameformat=None, path=None, withChat=False, cookiesPath=None):
         self.space_id = space_id
         self.dyn_url = dyn_url
         self.filename = filename
         self.filenameformat = filenameformat
         self.path = path
+        self.cookiesPath = cookiesPath
         self.metadata = None
         self.playlists = None
         self.wasrunning = False
         
         # Get the metadata (If applicable)
         if self.space_id != None:
-            guest_token = TwitterSpace.getGuestToken()
-            self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
+            if self.cookiesPath == None:
+                guest_token = TwitterSpace.getGuestToken()
+                self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
+            else:
+                reader = CookieReader(file_path='./cookies.txt')
+                cookies = reader.read_cookies()
+                self.metadata = TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
             
         # If there's metadata, set the metadata.
         if self.metadata != None:

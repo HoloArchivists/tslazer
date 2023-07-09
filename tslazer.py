@@ -6,10 +6,10 @@ import TwitterSpace
 
 parser = argparse.ArgumentParser(description="Download Twitter Spaces at lazer fast speeds!", formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument("--path", "-p", type=str, help="Path to download the space")
-
+parser.add_argument('--cookies', '-c', type=str, help="Path to your cookie.txt file")
 spaceID_group = parser.add_argument_group("Downloading from a Space ID/URL")
 spaceID_group.add_argument("--space_id", "-s", type=str, help="Twitter Space ID or URL")
-spaceID_group.add_argument("--withchat", "-c", action='store_true', help="Export the Twitter Space's Chat")
+spaceID_group.add_argument("--withchat", "-wc", action='store_true', help="Export the Twitter Space's Chat")
 
 fileformat_options = """
     %%Ud	Host Display Name     %%Dy Year
@@ -36,7 +36,7 @@ if args.withchat == None:
 if args.space_id != None and args.fileformat != None:
     if args.path == None:
         args.path = os.getcwd()
-    TwitterSpace.TwitterSpace(space_id=args.space_id, filenameformat=args.fileformat, path=args.path, withChat=args.withchat)
+    TwitterSpace.TwitterSpace(space_id=args.space_id, filenameformat=args.fileformat, path=args.path, withChat=args.withchat, cookiesPath=args.cookies)
 if args.dyn_url != None and args.filename != None:
     if args.path == None:
         args.path = os.getcwd()    
