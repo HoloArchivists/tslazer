@@ -348,17 +348,17 @@ class TwitterSpace:
         self.playlists = None
         self.wasrunning = False
 
-        if self.cookiesPath != None:
+        # If no cookiesPath provided, get guest_token
+        cookies, guest_token = None, None
+        if self.cookiesPath is not None:
             reader = Cookie(file_path=self.cookiesPath)
             cookies = reader.getCookies(reader)
-        
-        # Get the metadata (If applicable)
-        if self.space_id != None:
-            if self.cookiesPath == None:
-                guest_token = TwitterSpace.getGuestToken()
-                self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
-            else:
-                self.metadata = TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
+        else:
+            guest_token = TwitterSpace.getGuestToken()
+
+        # If space_id is provided, get metadata
+        if self.space_id is not None:
+            self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token) if guest_token else TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
             
         # If there's metadata, set the metadata.
         if self.metadata != None:
