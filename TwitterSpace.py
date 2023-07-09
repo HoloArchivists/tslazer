@@ -203,12 +203,22 @@ class TwitterSpace:
         # So we have a file now. We need execute it with ffmpeg in order to complete the download.
         if metadata == None:
             try:
-                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy {filename}.m4a -loglevel fatal"
+                command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    "chunkindex.txt",
+                    "-c",
+                    "copy",
+                    f"{filename}.m4a",
+                    "-loglevel",
+                    "fatal"
+                ]
                 
-                if platform == "linux" or platform == "linux2":  
-                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
-                else:
-                    subprocess.run(command, cwd=path)
+                subprocess.run(command, cwd=path, check=True)
 
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
@@ -221,17 +231,32 @@ class TwitterSpace:
                 title = metadata["title"]
                 author = metadata["author"]
                                   
-                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" {filename}.m4a -loglevel fatal"
-                
-                if platform == "linux" or platform == "linux2":  
-                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
-                else:
-                    subprocess.run(command, cwd=path)
+                command = [
+                        "ffmpeg",
+                        "-f",
+                        "concat",
+                        "-safe",
+                        "0",
+                        "-i",
+                        "chunkindex.txt",
+                        "-c",
+                        "copy",
+                        "-metadata",
+                        f"title={title}",
+                        "-metadata",
+                        f"artist={author}",
+                        f"{filename}.m4a",
+                        "-loglevel",
+                        "fatal"
+                    ]
+
+                subprocess.run(command, cwd=path, check=True)
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
             except Exception:
                 print("Failed To Create Subprocess.")
+                return
 
             print(f"Successfully Downloaded Twitter Space {filename}.m4a")
             
