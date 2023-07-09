@@ -159,10 +159,7 @@ class TwitterSpace:
         :param space_id: URL or Space ID
         :param guest_token: Guest Token
         """
-        try:
-            spaceID = self.get_space_id(space_id)
-        except Exception:
-            print("Unable to find a space ID, please try again.")
+        spaceID = self.getSpaceId(space_id)
             
         # Prepare Variables
         headers = {"authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", "x-guest-token" : guest_token}
