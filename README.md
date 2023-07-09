@@ -12,7 +12,7 @@ Due to recent changes in Twitter's API, the current version of this tool is no l
 
 As of July 2023, changes to Twitter's API have rendered tslazer's ability to download Twitter Spaces without authorization or credentials is now broken. 
 
-July 9th Update: @fluorescentoast has implemented a [temporary solution](https://github.com/HoloArchivists/tslazer/pull/8) that will allow you to continue using the tool. This implementation requires you to export your cookies to a file, then use the `-c` option to specify your cookies file. This requires the use of an extension to export your cookies; one such extension is [editthiscookie](https://www.editthiscookie.com/). To ensure that your cookie file is compatible, make sure that the export format is set to `Netscape HTTP Cookie File`.
+July 9th Update: [@fluorescentoast](https://github.com/fluorescentoast) has implemented a [temporary solution](https://github.com/HoloArchivists/tslazer/pull/8) that will allow you to continue using the tool. This implementation requires you to export your cookies to a file, then use the `-c` option to specify your cookies file. This requires the use of an extension to export your cookies; one such extension is [editthiscookie](https://www.editthiscookie.com/). To ensure that your cookie file is compatible, make sure that the export format is set to `Netscape HTTP Cookie File`.
 
 ### What Happened?
 
