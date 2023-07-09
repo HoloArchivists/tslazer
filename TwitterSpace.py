@@ -413,12 +413,12 @@ class TwitterSpace:
             
         # Now lets get the playlists
         if space_id != None and self.metadata != None:
-            if cookiesPath == None:
+            if self.cookiesPath == None:
                 self.playlists = TwitterSpace.getPlaylists(media_key=self.media_key, guest_token=guest_token)
             else:
                 self.playlists =TwitterSpace.getPlaylistsWithCookie(media_key=self.media_key, cookies=cookies)
         if space_id == None and self.metadata == None:
-            if cookiesPath == None:
+            if self.cookiesPath == None:
                 self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
             else:
                 self.playlists =TwitterSpace.getPlaylistsWithCookie(dyn_url=self.dyn_url, cookies=cookies)
@@ -436,7 +436,7 @@ class TwitterSpace:
             print(f"Space Found! \n Space Title: {self.title} \n Space Host Username: {self.creator.screen_name} \n Space Host Display Name: {self.creator.name} \n Space Master URL: {self.playlists.master_url} \n Space Dynamic URL: {self.playlists.dyn_url} \n Chat Token: {self.playlists.chatToken} \n Downloading to {self.filenameformat}.m4a")
             print("Waiting for space to end...")
             while self.state == "Running":
-                if cookiesPath == None:
+                if self.cookiesPath == None:
                     self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
                 else:
                     self.metadata = TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
@@ -464,7 +464,7 @@ class TwitterSpace:
         
         if self.metadata != None:
             m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name}
-            if cookiesPath == None:
+            if self.cookiesPath == None:
                 self.playlists.master_url = TwitterSpace.getPlaylists(dyn_url=self.playlists.dyn_url).master_url
             else:
                 self.playlists.master_url = TwitterSpace.getPlaylistsWithCookie(dyn_url=self.playlists.dyn_url, cookies=cookies).master_url
