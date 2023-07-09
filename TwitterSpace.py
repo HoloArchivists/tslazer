@@ -17,7 +17,7 @@ import urllib.parse
 import json
 
 import WebSocketHandler
-from CookieReader import CookieReader
+from Cookie import Cookie
 
 from slugify import slugify
 from threading import Thread
@@ -112,7 +112,7 @@ class TwitterSpace:
     def getPlaylistsWithCookie(media_key=None, cookies=None, dyn_url=None):
 
         if media_key != None and cookies != None:
-            cookie_header = "; ".join([f"{name}={value}" for name, value in cookies.items()])
+            cookie_header = Cookie.getHeader(cookies=cookies)
             headers = {
                 "authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", 
                 "x-csrf-token" : cookies['ct0'],
@@ -176,9 +176,9 @@ class TwitterSpace:
     
     @staticmethod
     def getMetadataWithCookies(space_id: str,  cookies: dict[str,str]):
-        space_id = TwitterSpace.get_space_id(space_id)
+        space_id = TwitterSpace.getSpaceId(space_id)
 
-        cookie_header = "; ".join([f"{name}={value}" for name, value in cookies.items()])
+        cookie_header = Cookie.getHeader(cookies=cookies)
         headers = {
             "authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", 
             "x-csrf-token" : cookies['ct0'],
@@ -227,7 +227,7 @@ class TwitterSpace:
         return metadataResponse
     
     @staticmethod
-    def get_space_id(space_id) -> str:
+    def getSpaceId(space_id) -> str:
         try:
             return re.findall(r"\d[a-zA-Z]{12}", space_id)[0]
         except Exception:
@@ -325,26 +325,12 @@ class TwitterSpace:
                 title = metadata["title"]
                 author = metadata["author"]
                                   
-                command = [
-                        "ffmpeg",
-                        "-f",
-                        "concat",
-                        "-safe",
-                        "0",
-                        "-i",
-                        "chunkindex.txt",
-                        "-c",
-                        "copy",
-                        "-metadata",
-                        f"title={title}",
-                        "-metadata",
-                        f"artist={author}",
-                        f"{filename}.m4a",
-                        "-loglevel",
-                        "fatal"
-                    ]
+                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" {filename}.m4a -loglevel fatal"
 
-                subprocess.run(command, cwd=path, check=True) # https://github.com/HoloArchivists/tslazer/issues/1
+                if platform == "linux" or platform == "linux2":  
+                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
+                else:
+                    subprocess.run(command, cwd=path)
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
@@ -365,9 +351,9 @@ class TwitterSpace:
         self.playlists = None
         self.wasrunning = False
 
-        if cookiesPath != None:
-            reader = CookieReader(file_path='./cookies.txt')
-            cookies = reader.read_cookies()
+        if self.cookiesPath != None:
+            reader = Cookie(file_path=self.cookiesPath)
+            cookies = reader.getCookies(reader)
         
         # Get the metadata (If applicable)
         if self.space_id != None:
