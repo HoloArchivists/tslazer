@@ -109,6 +109,48 @@ class TwitterSpace:
             return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
     
     @staticmethod
+    def getPlaylistsWithCookie(media_key=None, cookies=None, dyn_url=None):
+
+        if media_key != None and cookies != None:
+            cookie_header = "; ".join([f"{name}={value}" for name, value in cookies.items()])
+            headers = {
+                "authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", 
+                "x-csrf-token" : cookies['ct0'],
+                "cookie": cookie_header
+            }
+
+            dataRequest = requests.get(f"https://twitter.com/i/api/1.1/live_video_stream/status/{media_key}", headers=headers, cookies=cookies)
+            dataResponse = dataRequest.json()
+            dataLocation = dataResponse['source']['location']
+            dataLocation = re.sub(r"(dynamic_playlist\.m3u8((?=\?)(\?type=[a-z]{4,}))?|master_playlist\.m3u8(?=\?)(\?type=[a-z]{4,}))", "master_playlist.m3u8", dataLocation)
+            
+            chatToken = dataResponse["chatToken"]
+            
+        if dyn_url != None:
+            dataLocation = dyn_url
+            dataLocation = re.sub(r"(dynamic_playlist\.m3u8((?=\?)(\?type=[a-z]{4,}))?|master_playlist\.m3u8(?=\?)(\?type=[a-z]{4,}))", "master_playlist.m3u8", dataLocation)
+            chatToken = "None"
+        
+        dataComponents = urlparse(dataLocation)
+        
+        # Prepare Data Path and Data Server
+        # The data path is used to retrieve the True Master Playlist
+        dataServer = f"{dataComponents.scheme}://{dataComponents.hostname}"
+        dataPath = dataComponents.path
+        
+        # Get the Master Playlist
+        playlistRequest = requests.get(f"{dataServer}{dataPath}")
+        playlistResponse = playlistRequest.text.split('\n')[-2]
+        playlistUrl = f"{dataServer}{playlistResponse}"
+        
+        chunkServer = f"{dataServer}{dataPath[:-20]}"
+#        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+        if playlistResponse == "#EXT-X-ENDLIST":
+            return TwitterSpace.SpacePlaylists(chunkServer[:-14], f"{dataServer}{dataPath}" , f"{dataServer}{dataPath}", chatToken)
+        else:
+            return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+    
+    @staticmethod
     def getMetadata(space_id, guest_token):
         """
         Retrieve the Metadata for a given twitter space ID or URL.
@@ -283,17 +325,32 @@ class TwitterSpace:
                 title = metadata["title"]
                 author = metadata["author"]
                                   
-                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" {filename}.m4a -loglevel fatal"
-                
-                if platform == "linux" or platform == "linux2":  
-                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
-                else:
-                    subprocess.run(command, cwd=path)
+                command = [
+                        "ffmpeg",
+                        "-f",
+                        "concat",
+                        "-safe",
+                        "0",
+                        "-i",
+                        "chunkindex.txt",
+                        "-c",
+                        "copy",
+                        "-metadata",
+                        f"title={title}",
+                        "-metadata",
+                        f"artist={author}",
+                        f"{filename}.m4a",
+                        "-loglevel",
+                        "fatal"
+                    ]
+
+                subprocess.run(command, cwd=path, check=True) # https://github.com/HoloArchivists/tslazer/issues/1
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
-            except Exception:
+            except Exception as e:
                 print("Failed To Create Subprocess.")
+                return
 
             print(f"Successfully Downloaded Twitter Space {filename}.m4a")
             
@@ -307,6 +364,10 @@ class TwitterSpace:
         self.metadata = None
         self.playlists = None
         self.wasrunning = False
+
+        if cookiesPath != None:
+            reader = CookieReader(file_path='./cookies.txt')
+            cookies = reader.read_cookies()
         
         # Get the metadata (If applicable)
         if self.space_id != None:
@@ -314,8 +375,6 @@ class TwitterSpace:
                 guest_token = TwitterSpace.getGuestToken()
                 self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
             else:
-                reader = CookieReader(file_path='./cookies.txt')
-                cookies = reader.read_cookies()
                 self.metadata = TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
             
         # If there's metadata, set the metadata.
@@ -368,9 +427,15 @@ class TwitterSpace:
             
         # Now lets get the playlists
         if space_id != None and self.metadata != None:
-            self.playlists = TwitterSpace.getPlaylists(media_key=self.media_key, guest_token=guest_token)
+            if cookiesPath == None:
+                self.playlists = TwitterSpace.getPlaylists(media_key=self.media_key, guest_token=guest_token)
+            else:
+                self.playlists =TwitterSpace.getPlaylistsWithCookie(media_key=self.media_key, cookies=cookies)
         if space_id == None and self.metadata == None:
-            self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
+            if cookiesPath == None:
+                self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
+            else:
+                self.playlists =TwitterSpace.getPlaylistsWithCookie(dyn_url=self.dyn_url, cookies=cookies)
             
         # Now Start a subprocess for running the chat exporter
         if withChat == True and self.metadata != None:
@@ -385,7 +450,10 @@ class TwitterSpace:
             print(f"Space Found! \n Space Title: {self.title} \n Space Host Username: {self.creator.screen_name} \n Space Host Display Name: {self.creator.name} \n Space Master URL: {self.playlists.master_url} \n Space Dynamic URL: {self.playlists.dyn_url} \n Chat Token: {self.playlists.chatToken} \n Downloading to {self.filenameformat}.m4a")
             print("Waiting for space to end...")
             while self.state == "Running":
-                self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
+                if cookiesPath == None:
+                    self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
+                else:
+                    self.metadata = TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
                 try:
                     self.state = self.metadata["data"]["audioSpace"]["metadata"]["state"]
                     time.sleep(10)
@@ -410,7 +478,10 @@ class TwitterSpace:
         
         if self.metadata != None:
             m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name}
-            self.playlists.master_url = TwitterSpace.getPlaylists(dyn_url=self.playlists.dyn_url).master_url
+            if cookiesPath == None:
+                self.playlists.master_url = TwitterSpace.getPlaylists(dyn_url=self.playlists.dyn_url).master_url
+            else:
+                self.playlists.master_url = TwitterSpace.getPlaylistsWithCookie(dyn_url=self.playlists.dyn_url, cookies=cookies).master_url
             livechunks = TwitterSpace.getChunks(self.playlists)
             TwitterSpace.downloadChunks(livechunks, self.filenameformat, self.path, m4aMetadata)
  #           spaceThread = Thread(target=TwitterSpace.downloadChunks, args=(chunks, self.filenameformat, self.path, m4aMetadata,))
