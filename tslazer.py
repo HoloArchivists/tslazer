@@ -24,6 +24,10 @@ dyn_group = parser.add_argument_group("Downloading from a dynamic or master URL"
 dyn_group.add_argument("--dyn_url", "-d", type=str, help="Twitter Space Master URL or Dynamic Playlist URL")
 dyn_group.add_argument("--filename", "-fn", type=str, help="Filename for the Twitter Space")
 
+flag_group = parser.add_argument_group("Various Flags")
+flag_group.add_argument("--writeinfo", "-wi", action='store_true', help="Write the Twitter Space information to a file")
+flag_group.add_argument("--keepm3u8", "-km", action='store_true', help="Keep the m3u8 playlist after downloading is complete")
+
 args = parser.parse_args()
 if args.fileformat == None and args.space_id != None:
     print("Missing Fileformat!")

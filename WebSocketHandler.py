@@ -116,7 +116,7 @@ class SpaceChat:
         url = f"{chatvars.chat_replay_endpoint}"
         payload = {"access_token" : chatvars.chat_replay_token,"cursor" : cursor, "limit":100}
 
-        chatrequest = requests.post(url, data=json.dumps(payload))
+        chatrequest = requests.post(url, data=json.dumps(payload), timeout=5)
         if chatrequest.status_code == 503:
             # If we get a 503, then that means there is no more chat to get, the twitter space is likely over.
             return None
@@ -142,11 +142,18 @@ class SpaceChat:
         if messagekind == "Chat":
             messagetype = SpaceChat.RecordableActionTypes[json.loads(messagepayload["body"])["type"]]
 
-            if messagetype == "Chat" or messagetype == "Heart" or messagetype == "ServerAudioTranscription":
+            if messagetype == "Chat" or messagetype == "Heart":
                 message = messagepayload["body"]
                 message = json.loads(message)["body"]
                 sender = SpaceChat.PayloadSender(messagesender["twitter_id"], messagesender["username"], messagesender["display_name"], messagesender["profile_image_url"])
                 return f"Message: {message} {fullSenderData} Type: {messagetype}"
+
+            if messagetype == "ServerAudioTranscription":
+                transcription = json.loads(messagepayload["body"])
+                if transcription.get("final", True):
+                    message = transcription["body"]
+                    return f"Message: {message} {fullSenderData} Type: {messagetype}"
+
             
             if messagetype == "HydraControlMessage":
                 message = "Hydra Control Message"
@@ -216,8 +223,9 @@ class SpaceChat:
         parsed_messages = 0
         for raw_message in chatHistory:
             parsed_message = SpaceChat.parseMessage(raw_message)
-            parsedMessages.append(parsed_message)
-            parsed_messages += 1
+            if not parsed_message.startswith('ServerAudioTranscription'):
+                parsedMessages.append(parsed_message)
+                parsed_messages += 1
             print(f"Parsed {parsed_messages} Messages", end="\r")
                 
             

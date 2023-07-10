@@ -35,6 +35,7 @@ class TwitterSpace:
         dyn_url: str
         master_url: str
         chatToken: str
+        raw_response: str
     
     @dataclass
     class Chunk:
@@ -66,15 +67,19 @@ class TwitterSpace:
         return tokenResponse["guest_token"]
     
     @staticmethod
-    def getPlaylists(media_key=None, guest_token=None, dyn_url=None):
+    def getPlaylists(media_key=None, guest_token=None, dyn_url=None, write_info=False):
         """
         Get The master playlist from a twitter space.
         
         :param media_key: The media key to the twitter space. Given in the metadata
         :param guest_token: The Guest Token that allows us to use the Twitter API without OAuth
         :param dyn_url: The dynamic/Master URL (If needed)
+        :param write_info: Whether or not to write the twitter space information to a file
         :returns: NamedTuple SpacePlaylists
         """
+        
+        dataResponse = None
+        
         if media_key != None and guest_token != None:
             headers = {"authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", "x-guest-token" : guest_token}
             dataRequest = requests.get(f"https://twitter.com/i/api/1.1/live_video_stream/status/{media_key}", headers=headers)
@@ -103,13 +108,24 @@ class TwitterSpace:
         
         chunkServer = f"{dataServer}{dataPath[:-20]}"
 #        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+
         if playlistResponse == "#EXT-X-ENDLIST":
-            return TwitterSpace.SpacePlaylists(chunkServer[:-14], f"{dataServer}{dataPath}" , f"{dataServer}{dataPath}", chatToken)
+            return TwitterSpace.SpacePlaylists(chunkServer[:-14], f"{dataServer}{dataPath}" , f"{dataServer}{dataPath}", chatToken, dataResponse)
         else:
-            return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+            return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken, dataResponse)
     
     @staticmethod
     def getPlaylistsWithCookie(media_key=None, cookies=None, dyn_url=None):
+        """
+        Use Cookies to retrieve the playlists
+
+        Args:
+            media_key (str, optional): Media Key. Defaults to None.
+            cookies (dict, optional): Cookies. Defaults to None.
+            dyn_url (_type_, optional): Dynamic URL. Defaults to None.
+        """
+        
+        dataResponse = None
 
         if media_key != None and cookies != None:
             cookie_header = Cookie.getHeader(cookies=cookies)
@@ -146,9 +162,9 @@ class TwitterSpace:
         chunkServer = f"{dataServer}{dataPath[:-20]}"
 #        return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
         if playlistResponse == "#EXT-X-ENDLIST":
-            return TwitterSpace.SpacePlaylists(chunkServer[:-14], f"{dataServer}{dataPath}" , f"{dataServer}{dataPath}", chatToken)
+            return TwitterSpace.SpacePlaylists(chunkServer[:-14], f"{dataServer}{dataPath}" , f"{dataServer}{dataPath}", chatToken, dataResponse)
         else:
-            return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken)
+            return TwitterSpace.SpacePlaylists(chunkServer, f"{dataServer}{dataPath}" , playlistUrl, chatToken, dataResponse)
     
     @staticmethod
     def getMetadata(space_id, guest_token):
@@ -250,7 +266,7 @@ class TwitterSpace:
         
         for chunk in re.findall(r"chunk_\d{19}_\d+_a\.aac", m3u8Data):
             chunkList.append(TwitterSpace.Chunk(f"{playlists.chunk_server}{chunk}", chunk))
-        return chunkList
+        return chunkList    
 
     @staticmethod
     def downloadChunks(chunklist, filename, path=os.getcwd(), metadata=None):
@@ -321,23 +337,90 @@ class TwitterSpace:
             try:
                 title = metadata["title"]
                 author = metadata["author"]
-                                  
-                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" {filename}.m4a -loglevel fatal"
+                composer = metadata["composer"]
+                pfp_location = metadata["profile_picture"]
+
+                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy \"nometa_{filename}.m4a\" -loglevel fatal"
+                add_pfp_command = f"ffmpeg -y -i \"nometa_{filename}.m4a\" -i \"{pfp_location}\" -map 0 -map 1 -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" -metadata composer=\"{composer}\" -metadata comment=\"https://github.com/ef1500\" -disposition:v:0 attached_pic \"{filename}.m4a\" -loglevel fatal"
 
                 if platform == "linux" or platform == "linux2":  
                     subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
+                    subprocess.run(add_pfp_command, cwd=path, shell=True)
                 else:
                     subprocess.run(command, cwd=path)
+                    subprocess.run(add_pfp_command, cwd=path, shell=True)
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
+                os.remove(os.path.join(path, f"nometa_{filename}.m4a"))
+                os.remove(pfp_location)
             except Exception as e:
                 print("Failed To Create Subprocess.")
                 return
 
             print(f"Successfully Downloaded Twitter Space {filename}.m4a")
             
-    def __init__(self, space_id=None, dyn_url=None, filename=None, filenameformat=None, path=None, withChat=False, cookiesPath=None):
+    def _download_playlist(self):
+        """
+        Download the m3u8's to the specified path if the keepm3u8 argument is true
+        """
+        m3u8_request = requests.get(self.playlists.master_url, timeout=10)
+        filename = re.search(r'[a-zA-Z]+_([A-Za-z0-9]+(\.(m3u8)+)+)', self.playlists.master_url)[0]
+        with open(os.path.join(self.path, filename), 'w', encoding='utf-8') as m3u8file:
+            m3u8file.write(m3u8_request.text)
+            
+    def _write_info(self):
+        """
+        Write the raw space information to a file if the writeinfo argument is true
+        """
+        with open(os.path.join(self.path, "playlist_urls.txt"), 'w', encoding='utf-8') as urlfile:
+            urlfile.write(json.dumps(self.playlists.raw_response, indent=4))
+            
+    def _display_banner(self):
+        banner = """
+  _______  _                        
+ |__   __|| |                       
+    | |___| |     __ _ _______ _ __ 
+    | / __| |    / _` |_  / _ \ '__|
+    | \__ \ |___| (_| |/ /  __/ |   
+    |_|___/______\__,_/___\___|_|   
+
+    Record Twitter Spaces!
+
+    Developed By EF1500 | Holoarchivists
+    https://github.com/ef1500 | https://github.com/HoloArchivists
+        """
+        print(banner)
+        
+    def _display_info(self):
+        """
+        Display the Twitter Space information on the screen
+        """
+        space_information = ["[TWITTER SPACE STREAM INFORMATION]"]
+        if self.space_id:
+            space_information.append(f"Twitter Space ID: {self.space_id}")
+        if self.dyn_url:
+            space_information.append(f"Dynamic URL: {self.dyn_url}")
+        space_information.append(f"Master URL: {self.playlists.master_url}")
+        space_information.append(f"Chat Token: {self.playlists.chatToken}")
+
+        if self.metadata:
+            space_information.extend([
+                "\n[TWITTER SPACE METADATA]",
+                f"Title: {self.title}",
+                f"Current State: {self.state}",
+                f"Created At: {self.created_at}",
+                f"Started At: {self.started_at}",
+                f"Media Key: {self.media_key}",
+                "\n[TWITTER SPACE CREATOR INFO]",
+                f"Screen Name: {self.creator.screen_name}",
+                f"Display Name: {self.creator.name}",
+                f"ID: {self.creator.id}"
+            ])
+        
+        print('\n'.join(space_information))
+            
+    def __init__(self, space_id=None, dyn_url=None, filename=None, filenameformat=None, path=None, withChat=False, cookiesPath=None, keepm3u8=False, write_info=False):
         self.space_id = space_id
         self.dyn_url = dyn_url
         self.filename = filename
@@ -347,6 +430,10 @@ class TwitterSpace:
         self.metadata = None
         self.playlists = None
         self.wasrunning = False
+        self.keepm3u8 = keepm3u8
+        self.write_info = write_info
+        
+        self._display_banner()
 
         # If no cookiesPath provided, get guest_token
         cookies, guest_token = None, None
@@ -377,6 +464,17 @@ class TwitterSpace:
                 self.creator = TwitterSpace.TwitterUser(self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["name"], self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["screen_name"], self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["rest_id"])
             except KeyError:
                 self.creator = TwitterSpace.TwitterUser("Protected_User", "Protected", "0")
+                
+            try:
+                self.creator_pfp = self.metadata["data"]["audioSpace"]["metadata"]["creator_results"]["result"]["legacy"]["profile_image_url_https"].replace("_normal", "") # Get pfp at full size
+            except KeyError:
+                self.creator_pfp = "https://abs.twimg.com/sticky/default_profile_images/default_profile.png"
+                
+            pfp_filename = f"{uuid.uuid4().hex}.jpg"
+            
+            filedata = requests.get(self.creator_pfp, stream=True, timeout=15)
+            with open(os.path.join(self.path, pfp_filename), 'wb') as out_file:
+                shutil.copyfileobj(filedata.raw, out_file)
                 
         # Get the Fileformat here, so that way it won't hinder the chat exporter when it's running.
         # Now let's format the fileformat per the user's request.
@@ -419,6 +517,14 @@ class TwitterSpace:
                 self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
             else:
                 self.playlists =TwitterSpace.getPlaylistsWithCookie(dyn_url=self.dyn_url, cookies=cookies)
+                
+        self._display_info()
+        
+        if self.write_info is True:
+            self._write_info()
+            
+        if self.keepm3u8 is True:
+            self._download_playlist()
             
         # Now Start a subprocess for running the chat exporter
         if withChat == True and self.metadata != None:
@@ -430,8 +536,8 @@ class TwitterSpace:
         if self.metadata != None and self.state == "Running":
             self.wasrunning = True
             # Print out the space Information
-            print(f"Space Found! \n Space Title: {self.title} \n Space Host Username: {self.creator.screen_name} \n Space Host Display Name: {self.creator.name} \n Space Master URL: {self.playlists.master_url} \n Space Dynamic URL: {self.playlists.dyn_url} \n Chat Token: {self.playlists.chatToken} \n Downloading to {self.filenameformat}.m4a")
-            print("Waiting for space to end...")
+            print(f"[TSLAZER] VALID SPACE DETECTED")
+            print("[TSLAZER] Waiting for space to end...")
             while self.state == "Running":
                 if self.cookiesPath == None:
                     self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
@@ -443,7 +549,21 @@ class TwitterSpace:
                 except Exception:
                     self.state = "ERROR"
             print("Space Ended. Now Downloading...")
-        
+            
+        # Check to see if the master playlist is avaliable yet (https://github.com/HoloArchivists/tslazer/issues/5)
+        if self.wasrunning is True:
+            print(f"[TSLAZER] Checking Master Playlist Availability")
+            check_request = requests.get(self.playlists.master_url, timeout=5)
+            if check_request.status_code != 200:
+                print(f"[TSLAZER] Master Playlist Not Available Yet.")
+                print(f"[TSLAZER] Checking Master Playlist Availability Every 10 Seconds...")
+
+                attempts = 1
+                while attempts <= 100 and check_request.status_code != 200:
+                    time.sleep(10)
+                    check_request = requests.get(self.playlists.master_url, timeout=5)
+                    attempts += 1
+
 #        if self.metadata != None and self.state == "Ended" and self.wasrunning == False:
 #            try:
             # Print out the space Information
@@ -460,7 +580,7 @@ class TwitterSpace:
             TwitterSpace.downloadChunks(chunks, self.filename, path=self.path)
         
         if self.metadata != None:
-            m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name}
+            m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name, "composer": self.creator.name, "profile_picture": os.path.join(self.path, pfp_filename)}
             if self.cookiesPath == None:
                 self.playlists.master_url = TwitterSpace.getPlaylists(dyn_url=self.playlists.dyn_url).master_url
             else:
