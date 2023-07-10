@@ -43,18 +43,19 @@ This program requires `ffmpeg` to work. You can install it using `sudo apt insta
 #### Arguments
 
     >python3 tslazer.py --help
-    usage: tslazer.py [-h] [--path PATH] [--space_id SPACE_ID] [--withchat] [--fileformat FILEFORMAT] [--dyn_url DYN_URL] [--filename FILENAME]
+    usage: tslazer.py [-h] [--path PATH] [--cookies COOKIES] [--space_id SPACE_ID] [--withchat] [--fileformat FILEFORMAT] [--dyn_url DYN_URL] [--filename FILENAME] [--writeinfo] [--keepm3u8]
 
     Download Twitter Spaces at lazer fast speeds!
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
       --path PATH, -p PATH  Path to download the space
+      --cookies COOKIES, -c COOKIES
+                            Path to your cookie.txt file
 
     Downloading from a Space ID/URL:
       --space_id SPACE_ID, -s SPACE_ID
                             Twitter Space ID or URL
-      --cookies -c          Filepath for your cookies.txt file
       --withchat, -wc       Export the Twitter Space's Chat
       --fileformat FILEFORMAT, -f FILEFORMAT
                             File Format Options:
@@ -70,6 +71,10 @@ This program requires `ffmpeg` to work. You can install it using `sudo apt insta
                             Twitter Space Master URL or Dynamic Playlist URL
       --filename FILENAME, -fn FILENAME
                             Filename for the Twitter Space
+
+    Various Flags:
+      --writeinfo, -wi      Write the Twitter Space information to a file
+      --keepm3u8, -km       Keep the m3u8 playlist after downloading is complete
 
 | Argument | Description                                                                                                     |
 | -------- | --------------------------------------------------------------------------------------------------------------- |
