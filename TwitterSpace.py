@@ -350,15 +350,52 @@ class TwitterSpace:
                 composer = metadata["composer"]
                 pfp_location = metadata["profile_picture"]
 
-                command = f"ffmpeg -f concat -safe 0 -i chunkindex.txt -c copy \"nometa_{filename}.m4a\" -loglevel fatal"
-                add_pfp_command = f"ffmpeg -y -i \"nometa_{filename}.m4a\" -i \"{pfp_location}\" -map 0 -map 1 -c copy -metadata title=\"{title}\" -metadata artist=\"{author}\" -metadata composer=\"{composer}\" -metadata comment=\"https://github.com/ef1500\" -disposition:v:0 attached_pic \"{filename}.m4a\" -loglevel fatal"
+                command = [
+                    "ffmpeg",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    "chunkindex.txt",
+                    "-c",
+                    "copy",
+                    f"nometa_{filename}.m4a",
+                    "-loglevel",
+                    "fatal"
+                ]
 
-                if platform == "linux" or platform == "linux2":  
-                    subprocess.run(command, cwd=path, shell=True) # https://github.com/HoloArchivists/tslazer/issues/1
-                    subprocess.run(add_pfp_command, cwd=path, shell=True)
-                else:
-                    subprocess.run(command, cwd=path)
-                    subprocess.run(add_pfp_command, cwd=path, shell=True)
+                add_pfp_command = [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    f"nometa_{filename}.m4a",
+                    "-i",
+                    pfp_location,
+                    "-map",
+                    "0",
+                    "-map",
+                    "1",
+                    "-c",
+                    "copy",
+                    "-metadata",
+                    f"title={title}",
+                    "-metadata",
+                    f"artist={author}",
+                    "-metadata",
+                    f"composer={composer}",
+                    "-metadata",
+                    "comment=https://github.com/ef1500",
+                    "-disposition:v:0",
+                    "attached_pic",
+                    f"{filename}.m4a",
+                    "-loglevel",
+                    "fatal"
+                ]
+ 
+                subprocess.run(command, cwd=path, check=True) 
+                subprocess.run(add_pfp_command, cwd=path, check=True)
+
                 # Delete the Directory with all of the chunks. We no longer need them.
                 shutil.rmtree(chunkpath)
                 os.remove(os.path.join(path, "chunkindex.txt"))
