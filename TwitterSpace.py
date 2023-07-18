@@ -305,107 +305,77 @@ class TwitterSpace:
         print("Finished Downloading Chunks")
                 
         # Once we've downloaded all of the chunks, we want to make a file that ffmpeg can work with.
-        with open(os.path.join(path, "chunkindex.txt"), "w+") as chunkIndexWriter:
-            for file in os.scandir(chunkpath):
+        with open(os.path.join(path, "temp.aac"), "wb") as tempAAC:
+            for file in sorted(os.listdir(chunkpath)):
+                file = os.path.join(chunkpath, file)
                 # Get rid of all of the pesky id3 tags that we DONT NEED
                 # Note: If the space has already ended, sometimes the ID3 Tags are gone, as
                 # The HydraControlMessages are only used during a live space and are cleaned
                 # After the space has ended.
-                audio = mid3.ID3(os.path.join(chunkpath, file.name))
-                audio.delete(os.path.join(chunkpath, file.name))
-                audio.save(os.path.join(chunkpath, file.name))
-                
-                chunkIndexWriter.write(f"file \'./{uniqueFoldername}/{file.name}\'\n")
-        
+                audio = mid3.ID3()
+                audio.save(file)
+
+                with open(file, "rb") as fileReader:
+                    shutil.copyfileobj(fileReader, tempAAC)
+
         # So we have a file now. We need execute it with ffmpeg in order to complete the download.
         if metadata == None:
-            try:
-                command = [
-                    "ffmpeg",
-                    "-f",
-                    "concat",
-                    "-safe",
-                    "0",
-                    "-i",
-                    "chunkindex.txt",
-                    "-c",
-                    "copy",
-                    f"{filename}.m4a",
-                    "-loglevel",
-                    "fatal"
-                ]
-                
-                subprocess.run(command, cwd=path, check=True)
+            command = [
+                "ffmpeg",
+                "-i",
+                "temp.aac",
+                "-c",
+                "copy",
+                f"{filename}.m4a",
+                "-loglevel",
+                "fatal"
+            ]
+        else:
+            title = metadata["title"]
+            author = metadata["author"]
+            composer = metadata["composer"]
+            pfp_location = metadata["profile_picture"]
 
-                # Delete the Directory with all of the chunks. We no longer need them.
-                shutil.rmtree(chunkpath)
-                os.remove(os.path.join(path, "chunkindex.txt"))
-            except Exception:
-                print("Failed To Create Subprocess.")
-        
-        if metadata != None:
-            try:
-                title = metadata["title"]
-                author = metadata["author"]
-                composer = metadata["composer"]
-                pfp_location = metadata["profile_picture"]
+            command = [
+                "ffmpeg",
+                "-y",
+                "-i",
+                "temp.aac",
+                "-i",
+                pfp_location,
+                "-map",
+                "0",
+                "-map",
+                "1",
+                "-c",
+                "copy",
+                "-metadata",
+                f"title={title}",
+                "-metadata",
+                f"artist={author}",
+                "-metadata",
+                f"composer={composer}",
+                "-metadata",
+                "comment=https://github.com/ef1500",
+                "-disposition:v:0",
+                "attached_pic",
+                f"{filename}.m4a",
+                "-loglevel",
+                "fatal"
+            ]
 
-                command = [
-                    "ffmpeg",
-                    "-f",
-                    "concat",
-                    "-safe",
-                    "0",
-                    "-i",
-                    "chunkindex.txt",
-                    "-c",
-                    "copy",
-                    f"nometa_{filename}.m4a",
-                    "-loglevel",
-                    "fatal"
-                ]
-
-                add_pfp_command = [
-                    "ffmpeg",
-                    "-y",
-                    "-i",
-                    f"nometa_{filename}.m4a",
-                    "-i",
-                    pfp_location,
-                    "-map",
-                    "0",
-                    "-map",
-                    "1",
-                    "-c",
-                    "copy",
-                    "-metadata",
-                    f"title={title}",
-                    "-metadata",
-                    f"artist={author}",
-                    "-metadata",
-                    f"composer={composer}",
-                    "-metadata",
-                    "comment=https://github.com/ef1500",
-                    "-disposition:v:0",
-                    "attached_pic",
-                    f"{filename}.m4a",
-                    "-loglevel",
-                    "fatal"
-                ]
- 
-                subprocess.run(command, cwd=path, check=True) 
-                subprocess.run(add_pfp_command, cwd=path, check=True)
-
-                # Delete the Directory with all of the chunks. We no longer need them.
-                shutil.rmtree(chunkpath)
-                os.remove(os.path.join(path, "chunkindex.txt"))
-                os.remove(os.path.join(path, f"nometa_{filename}.m4a"))
+        try:
+            subprocess.run(command, cwd=path, check=True)
+            # Delete the Directory with all of the chunks. We no longer need them.
+            shutil.rmtree(chunkpath)
+            os.remove(os.path.join(path, "temp.aac"))
+            if metadata != None:
                 os.remove(pfp_location)
-            except Exception as e:
-                print("Failed To Create Subprocess.")
-                return
+        except Exception:
+            print("Failed To Create Subprocess.")
+            return
 
-            print(f"Successfully Downloaded Twitter Space {filename}.m4a")
+        print(f"Successfully Downloaded Twitter Space {filename}.m4a")
             
     def _download_playlist(self):
         """
