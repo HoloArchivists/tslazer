@@ -80,7 +80,7 @@ class TwitterSpace:
         
         dataResponse = None
         
-        if media_key != None and guest_token != None:
+        if media_key is not None and guest_token is not None:
             headers = {"authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", "x-guest-token" : guest_token}
             dataRequest = requests.get(f"https://twitter.com/i/api/1.1/live_video_stream/status/{media_key}", headers=headers)
             dataResponse = dataRequest.json()
@@ -89,7 +89,7 @@ class TwitterSpace:
             
             chatToken = dataResponse["chatToken"]
             
-        if dyn_url != None:
+        if dyn_url is not None:
             dataLocation = dyn_url
             dataLocation = re.sub(r"(dynamic_playlist\.m3u8((?=\?)(\?type=[a-z]{4,}))?|master_playlist\.m3u8(?=\?)(\?type=[a-z]{4,}))", "master_playlist.m3u8", dataLocation)
             chatToken = "None"
@@ -127,7 +127,7 @@ class TwitterSpace:
         
         dataResponse = None
 
-        if media_key != None and cookies != None:
+        if media_key is not None and cookies is not None:
             cookie_header = Cookie.getHeader(cookies=cookies)
             headers = {
                 "authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", 
@@ -175,7 +175,7 @@ class TwitterSpace:
         :param space_id: URL or Space ID
         :param guest_token: Guest Token
         """
-        spaceID = self.getSpaceId(space_id)
+        spaceID = TwitterSpace.getSpaceId(space_id)
             
         # Prepare Variables
         headers = {"authorization" : "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA", "x-guest-token" : guest_token}
@@ -266,7 +266,27 @@ class TwitterSpace:
         
         for chunk in re.findall(r"chunk_\d{19}_\d+_a\.aac", m3u8Data):
             chunkList.append(TwitterSpace.Chunk(f"{playlists.chunk_server}{chunk}", chunk))
-        return chunkList    
+        return chunkList
+    
+    @staticmethod
+    def detect_remove_partial_headers(file_path):
+        byteseq = bytes([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3F, 0x50, 0x52, 0x49, 0x56])
+
+        with open(file_path, 'rb') as file:
+            data = file.read()
+        
+        # Look for sequence
+        if not data.startswith(byteseq):
+            sequence_index = data.find(byteseq)
+
+            if sequence_index != -1:
+                modified_data = data[sequence_index:]
+
+                # Save File
+                with open(file_path, 'wb') as file:
+                    file.write(modified_data)
+        else:
+            return
 
     @staticmethod
     def downloadChunks(chunklist, filename, path=os.getcwd(), metadata=None):
@@ -281,10 +301,10 @@ class TwitterSpace:
         """
         # Check if the path exists
         uniqueFoldername = str(uuid.uuid4().hex) # Create A Unique Folder Name for the Program to operate in
-        if os.path.isdir(path) != True:
+        if os.path.isdir(path) is not True:
             os.makedirs(path) # Do I even need this?
             
-        if os.path.isdir(os.path.join(path, uniqueFoldername)) != True:
+        if os.path.isdir(os.path.join(path, uniqueFoldername)) is not True:
             os.makedirs(os.path.join(path, uniqueFoldername))
         chunkpath = os.path.join(path, uniqueFoldername)
         
@@ -312,6 +332,8 @@ class TwitterSpace:
                 # Note: If the space has already ended, sometimes the ID3 Tags are gone, as
                 # The HydraControlMessages are only used during a live space and are cleaned
                 # After the space has ended.
+                # Detect any partial headers and remove them before we manipulate the ID3
+                TwitterSpace.detect_remove_partial_headers(file)
                 audio = mid3.ID3()
                 audio.save(file)
 
@@ -319,7 +341,7 @@ class TwitterSpace:
                     shutil.copyfileobj(fileReader, tempAAC)
 
         # So we have a file now. We need execute it with ffmpeg in order to complete the download.
-        if metadata == None:
+        if metadata is None:
             command = [
                 "ffmpeg",
                 "-i",
@@ -369,7 +391,7 @@ class TwitterSpace:
             # Delete the Directory with all of the chunks. We no longer need them.
             shutil.rmtree(chunkpath)
             os.remove(os.path.join(path, "temp.aac"))
-            if metadata != None:
+            if metadata is not None:
                 os.remove(pfp_location)
         except Exception:
             print("Failed To Create Subprocess.")
@@ -465,7 +487,7 @@ class TwitterSpace:
             self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token) if guest_token else TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
             
         # If there's metadata, set the metadata.
-        if self.metadata != None:
+        if self.metadata is not None:
             
             try:
                 self.title = self.metadata['data']['audioSpace']['metadata']['title']
@@ -506,7 +528,7 @@ class TwitterSpace:
         #    %Dd    Day
         #    %Dt    Time (Utc)
         #    %Dl    Time (Local)
-        if self.filenameformat != None and self.metadata != None:
+        if self.filenameformat is not None and self.metadata is not None:
             self.filenameformat = self.filenameformat.replace("%Ud", self.creator.name)
             self.filenameformat = self.filenameformat.replace("%Un", self.creator.screen_name)
             self.filenameformat = self.filenameformat.replace("%Ui", self.creator.id)
@@ -524,13 +546,13 @@ class TwitterSpace:
             self.filenameformat = slugify(self.filenameformat, allow_unicode=True, lowercase=False, separator='_')
             
         # Now lets get the playlists
-        if space_id != None and self.metadata != None:
-            if self.cookiesPath == None:
+        if space_id is not None and self.metadata is not None:
+            if self.cookiesPath is None:
                 self.playlists = TwitterSpace.getPlaylists(media_key=self.media_key, guest_token=guest_token)
             else:
                 self.playlists =TwitterSpace.getPlaylistsWithCookie(media_key=self.media_key, cookies=cookies)
-        if space_id == None and self.metadata == None:
-            if self.cookiesPath == None:
+        if space_id is None and self.metadata is None:
+            if self.cookiesPath is None:
                 self.playlists = TwitterSpace.getPlaylists(dyn_url=self.dyn_url)
             else:
                 self.playlists =TwitterSpace.getPlaylistsWithCookie(dyn_url=self.dyn_url, cookies=cookies)
@@ -544,19 +566,19 @@ class TwitterSpace:
             self._download_playlist()
             
         # Now Start a subprocess for running the chat exporter
-        if withChat == True and self.metadata != None:
+        if withChat is True and self.metadata is not None:
             print("[ChatExporter] Chat Exporting is currently only supported for Ended Spaces with a recording. To Export Chat for a live space, copy the chat token and use WebSocketDriver.py.")
             chatThread = Thread(target=WebSocketHandler.SpaceChat, args=(self.playlists.chatToken, self.filenameformat, self.path,))
             #chatThread.start()
             
         # Print out the Space Information and wait for the Space to End (if it's running)             
-        if self.metadata != None and self.state == "Running":
+        if self.metadata is not None and self.state == "Running":
             self.wasrunning = True
             # Print out the space Information
             print(f"[TSLAZER] VALID SPACE DETECTED")
             print("[TSLAZER] Waiting for space to end...")
             while self.state == "Running":
-                if self.cookiesPath == None:
+                if self.cookiesPath is None:
                     self.metadata = TwitterSpace.getMetadata(self.space_id, guest_token)
                 else:
                     self.metadata = TwitterSpace.getMetadataWithCookies(self.space_id, cookies)
@@ -592,13 +614,13 @@ class TwitterSpace:
 #                print("Space Ended and Unable to get master url.")
             
         # Now it's time to download.        
-        if self.metadata == None:
+        if self.metadata is None:
             chunks = TwitterSpace.getChunks(self.playlists)
             TwitterSpace.downloadChunks(chunks, self.filename, path=self.path)
         
         if self.metadata != None:
             m4aMetadata = {"title" : self.title, "author" : self.creator.screen_name, "composer": self.creator.name, "profile_picture": os.path.join(self.path, pfp_filename)}
-            if self.cookiesPath == None:
+            if self.cookiesPath is None:
                 self.playlists.master_url = TwitterSpace.getPlaylists(dyn_url=self.playlists.dyn_url).master_url
             else:
                 self.playlists.master_url = TwitterSpace.getPlaylistsWithCookie(dyn_url=self.playlists.dyn_url, cookies=cookies).master_url
@@ -607,6 +629,6 @@ class TwitterSpace:
  #           spaceThread = Thread(target=TwitterSpace.downloadChunks, args=(chunks, self.filenameformat, self.path, m4aMetadata,))
 #            spaceThread.start()
             
-        if self.metadata != None and self.state == "Ended" and withChat == True and self.wasrunning == False:
+        if self.metadata is not None and self.state == "Ended" and withChat is True and self.wasrunning is False:
             chatThread.start() # If We're Downloading a Recording, we're all good to download the chat.
             print("[ChatExporter]: Chat Thread Started")

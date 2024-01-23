@@ -6,25 +6,7 @@ Also it's **Lazer** fast. It uses threading to ensure you always get the optimal
 
 ## 🚨 Important Update: July 2023 🚨
 
-Due to recent changes in Twitter's API, the current version of this tool is no longer functional. Twitter seems to have dissolved the usage of guest tokens, meaning that tslazer can no longer download spaces without authorization/credentials. 
-
-## Project Status
-
-As of July 2023, changes to Twitter's API have rendered tslazer's ability to download Twitter Spaces without authorization or credentials is now broken. 
-
-July 9th Update: [@fluorescentoast](https://github.com/fluorescentoast) has implemented a [temporary solution](https://github.com/HoloArchivists/tslazer/pull/8) that will allow you to continue using the tool. This implementation requires you to export your cookies to a file, then use the `-c` option to specify your cookies file. This requires the use of an extension to export your cookies; one such extension is [editthiscookie](https://www.editthiscookie.com/). To ensure that your cookie file is compatible, make sure that the export format is set to `Netscape HTTP Cookie File`.
-
-### What Happened?
-
-Twitter seems to have dissloved guest API access and/or twitter's v1.1 API. Because of this, the mechanism to retrieve the metadata for Twitter Spaces is now broken. You can read Twitter's official piece on it [here](https://twittercommunity.com/t/reminder-to-migrate-to-the-new-free-basic-or-enterprise-plans-of-the-twitter-api/189737). 
-
-### How can I help?
-
-If you have a solution to bypass this paywall, restore functionality, or renovate the tool, I **strongly implore** you to lend your invaluable contribution and helping hand. I believe that the only way we as programmers can overcome this is with the power of teamwork. The power to recusitate this project and tool lies in **your** hands.
-
-I have begun a [wiki](https://github.com/HoloArchivists/tslazer/wiki) for this project, where I attempt to explain how the mechanics of Twitter Spaces work, and I would encourage you to start there if you are interested and/or want to contribute.
-
-**Note: If you would like extended functionality, please use the 'twtiter-space-overhaul' branch.**
+Due to recent changes in Twitter's API, you must supply cookies using the `-c` option. Twitter seems to have dissolved the usage of guest tokens, meaning that tslazer can no longer download spaces without authorization/credentials.
 
 #### Usage
 

@@ -1,3 +1,4 @@
+requests
 mutagen
 python-slugify
 requests-futures
