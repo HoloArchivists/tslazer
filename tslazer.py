@@ -13,7 +13,7 @@ spaceID_group.add_argument("--withchat", "-wc", action='store_true', help="Expor
 
 fileformat_options = """
     %%Ud	Host Display Name     %%Dy Year
-    %%Un	Host Username         %%Dm Month     
+    %%Un	Host Username         %%Dm Month
     %%Ui	Host User ID          %%Dt Time (Utc)
     %%St	Space Title           %%Dl Time (Local)
     %%Si	Space ID
@@ -33,15 +33,17 @@ if args.fileformat == None and args.space_id != None:
     print("Missing Fileformat!")
 
 if args.dyn_url != None and args.filename == None:
-    print("Missing Filename Argument!")    
-    
+    print("Missing Filename Argument!")
+
 if args.withchat == None:
     args.withchat == False
+
 if args.space_id != None and args.fileformat != None:
     if args.path == None:
         args.path = os.getcwd()
-    TwitterSpace.TwitterSpace(space_id=args.space_id, filenameformat=args.fileformat, path=args.path, withChat=args.withchat, cookiesPath=args.cookies)
+    TwitterSpace.TwitterSpace(space_id=args.space_id, dyn_url=args.dyn_url, filenameformat=args.fileformat, path=args.path, withChat=args.withchat, cookiesPath=args.cookies)
+
 if args.dyn_url != None and args.filename != None:
     if args.path == None:
-        args.path = os.getcwd()    
+        args.path = os.getcwd()
     TwitterSpace.TwitterSpace(dyn_url=args.dyn_url, filename=args.filename, path=args.path)
